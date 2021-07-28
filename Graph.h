@@ -34,6 +34,13 @@ public:
     ~Graph();
 
     /**
+     * 获取图的节点列表
+     * Map形式，Key节点ID，Value为指向节点对象的指针常量
+     * @return
+     */
+    const std::map<const std::string, Node *const> &getNodeList() const;
+
+    /**
      * 遍历方法
      * 根据指定的开始节点遍历图中全部节点
      * @param beginNodeID 开始节点ID
@@ -46,15 +53,37 @@ public:
      * 根据指定的开始节点遍历图中全部节点
      * @param node 开始节点
      * @param type 遍历方式（深度或宽度）
+     * @param strategy
      * @return 遍历顺序对应ID列表
      */
-    std::vector<std::string> traverse(const Node &node, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
+    std::vector<std::string> traverse(const Node &beginNode, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
 
     /**
      * 游走方法
-     * 游走方法以获得关于图中点的某种模式为目标
+     * @param beginNodeID
+     * @param stepDefine
+     * @param auxiliaryStep
+     * @param walkLengthRatio
+     * @param totalStepCount
+     * @param type
+     * @param strategy
+     * @return
      */
-    void walk();
+    std::vector<std::string> walk(const std::string &beginNodeID,
+                                  const std::vector<std::string> &stepDefine,
+                                  const std::map<std::string, std::string> &auxiliaryStep,
+                                  const float &walkLengthRatio,
+                                  const int &totalStepCount,
+                                  const EdgeChooseStrategy &strategy,
+                                  const bool &resetGraph);
+
+    std::vector<std::string> walk(const Node &beginNode,
+                                  const std::vector<std::string> &stepDefine,
+                                  const std::map<std::string, std::string> &auxiliaryStep,
+                                  const float &walkLengthRatio,
+                                  const int &totalStepCount,
+                                  const EdgeChooseStrategy &strategy,
+                                  const bool &resetGraph);
 
     /**
      * 图重置方法
@@ -81,6 +110,8 @@ private:
      * value为对应点的指针
      */
     std::map<const std::string, Node *const> nodeList;
+
+    std::map<std::string, unsigned> nodeTypeCountList;
 
     /**
      * 图计算部分
