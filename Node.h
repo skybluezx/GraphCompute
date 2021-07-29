@@ -41,6 +41,8 @@ public:
      */
     const std::string &getType() const;
 
+    const std::string getIDType() const;
+
     /**
      * 返回该点邻接点列表
      * @return 点对象中邻接点列表的引用
@@ -78,7 +80,9 @@ public:
      */
     void visit();
 
-    bool isVisit() const;
+    bool isVisited() const;
+
+    int getVisitedCount() const;
 
     /**
      * 获得当前点的下一个连接点

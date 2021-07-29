@@ -11,6 +11,7 @@
 #include <queue>
 #include <random>
 #include <chrono>
+#include "boost/filesystem.hpp"
 
 #include "type_defination.h"
 #include "Util.h"
@@ -26,23 +27,29 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
         LOG(ERROR) << "图定义目录不存在！";
     } else {
         // 路径存在
-        auto begin = std::filesystem::recursive_directory_iterator(path);
-        auto end = std::filesystem::recursive_directory_iterator();
-
         // 遍历图定义文件所在目录的全部图定义文件
-        for (auto it = begin; it != end; ++it) {
+        for (auto it = std::filesystem::recursive_directory_iterator(path); it != std::filesystem::recursive_directory_iterator(); ++it) {
             // 判断当前是否为图定义文件
             auto &entry = *it;
             if (std::filesystem::is_regular_file(entry)) {
-                std::string fileName = entry.path();
-                LOG(INFO) << "读取文件：" << fileName;
+                std::string filePathString = entry.path();
+                // 不读取"."开头的文件
+                // 避免读取临时文件
+                boost::filesystem::path filePath(filePathString);
+                if (filePath.filename().string()[0] == '.') {
+                    LOG(INFO) << "跳过文件：" << filePath.filename().string();
+                    continue;
+                }
 
-                std::ifstream graphDefineFile(fileName, std::ios::in);
+                LOG(INFO) << "读取文件：" << filePath.filename();
+
+                std::ifstream graphDefineFile(filePathString, std::ios::in);
                 // 判断图定义文件打开是否成功
                 if (!graphDefineFile.is_open()) {
                     // 打开失败则输出错误日志
                     LOG(ERROR) << "文件读取失败！";
                 } else {
+                    int currentEdgeCount = 0;
                     // 遍历图定义文件的全部行
                     // 每一行为一个边描述
                     std::string line;
@@ -68,8 +75,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
                                 // 不存在则创建起点对应的点对象
                                 beginNode = new Node(beginNodePair[1], beginNodePair[0]);
                                 // 将创建的点增加至全局点字典
-                                this->nodeList.insert(
-                                        std::map<const std::string, Node *const>::value_type(beginNode->getID(), beginNode));
+                                this->nodeList.insert(std::make_pair(beginNode->getID(), beginNode));
 
                                 if (!this->nodeTypeCountList.contains(beginNode->getType())) {
                                     this->nodeTypeCountList[beginNode->getType()] = 0;
@@ -87,8 +93,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
                                 // 不存在则创建终点对应的点对象
                                 endNode = new Node(endNodePair[1], endNodePair[0]);
                                 // 将创建的点增加至全局点字典
-                                this->nodeList.insert(
-                                        std::map<const std::string, Node *const>::value_type(endNode->getID(), endNode));
+                                this->nodeList.insert(std::make_pair(endNode->getID(), endNode));
 
                                 if (!this->nodeTypeCountList.contains(endNode->getType())) {
                                     this->nodeTypeCountList[endNode->getType()] = 0;
@@ -102,6 +107,13 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
                             // 将当前边增加至起点和终点的链表中
                             beginNode->addEdge(endNode);
                             endNode->addEdge(beginNode);
+
+                            currentEdgeCount++;
+                            LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
+
+                            if (currentEdgeCount > 100000) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -117,13 +129,39 @@ Graph::~Graph() {
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
         // 因为图中的点是存储在堆内存中的所以要手动回收
         delete iter->second;
-        // 从节点列表中删除该节点避免野指针
-        this->nodeList.erase(iter);
     }
+
+    // 从节点列表中删除节点避免野指针
+    this->nodeList.erase(this->nodeList.begin(), this->nodeList.end());
 }
 
 const std::map<const std::string, Node *const> &Graph::getNodeList() const {
     return this->nodeList;
+}
+
+const int Graph::getNodeVisitedCount(const std::string &id) const {
+    if (this->nodeList.contains(id)) {
+        return this->nodeList.at(id)->getVisitedCount();
+    } else {
+        // 若对应ID的点不存在则返回-1
+        return -1;
+    }
+}
+
+const std::string Graph::getNodeType(const std::string &id) const {
+    if (this->nodeList.contains(id)) {
+        return this->nodeList.at(id)->getType();
+    } else {
+        return "";
+    }
+}
+
+std::vector<std::string> Graph::getNodeTypeList() const {
+    std::vector<std::string> typeList;
+    for (auto iter = this->nodeTypeCountList.begin(); iter != this->nodeTypeCountList.end(); ++iter) {
+        typeList.push_back(iter->first);
+    }
+    return typeList;
 }
 
 std::vector<std::string> Graph::traverse(const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {
@@ -188,7 +226,6 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
     }
 
     // 访问开始点
-
     beginNode->visit();
     int stepTypeIndex;
     Node *currentNode = beginNode;
@@ -198,41 +235,55 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
 
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
-        LOG(INFO) << "从起点开始的一次新的游走！当前步数：" << currentStepCount << "/" << totalStepCount;
+        LOG(INFO) << "新游走！当前步数：" << currentStepCount << "/" << totalStepCount;
 
         stepTypeIndex = 1;
         // 计算当前步游走长度
-        walkingLength = 10;
+        walkingLength = 100;
 
         // 遍历步长
         for (int i = 0; i < walkingLength; ++i) {
             LOG(INFO) << "向前一步！当前游走的步数：" << i + 1 << "/" << walkingLength;
 
+            // 访问当前步的开始点
+            currentNode->visit();
+            walkingSequence.push_back(currentNode->getID());
+            LOG(INFO) << "访问当前步的开始点:" << stepDefine[0] << ":" << currentNode->getID();
+
             // 遍历步的组成
             for (auto j = stepTypeIndex; j < stepDefine.size(); ++j) {
-                LOG(INFO) << "步中节点类型：" << stepDefine[j];
                 currentNode = currentNode->getNextLinkedNode(EdgeChooseStrategy::RANDOM, stepDefine[j]);
 
                 if (currentNode != nullptr) {
-                    LOG(INFO) << "步中节点ID：" << currentNode->getID();
+                    currentNode->visit();
+                    walkingSequence.push_back(currentNode->getID());
+                    LOG(INFO) << "访问下一点：" << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
                 } else {
                     // ToDo
                     // 重启策略
 
                     // 当前游走到的点已经没有步长定义中指定类型的连接点
-                    LOG(WARNING) << "当前点不存在步长定义中指定类型的邻接点！";
+                    LOG(WARNING) << "访问失败！不存在步长定义中指定类型的当前点！";
                     break;
                 }
             }
-            
+
+            // 完成当前步的游走
+            // 前进至下一步的开始节点
             if (currentNode != nullptr) {
-                LOG(INFO) << "完成一步！前进至下一步的步首节点";
+                LOG(INFO) << "完成一步！前进至下一步的开始节点";
                 currentNode = currentNode->getNextLinkedNode(EdgeChooseStrategy::RANDOM, stepDefine[0]);
+            } else {
+                // ToDo
+                // 重启策略
+
+                // 当前游走到的点已经没有步长定义中指定类型的连接点
+                LOG(WARNING) << "当前步的结束点不存在边连接至步下一步的开始点！";
+                break;
             }
         }
-//        // 当前点的链表
-//        const std::vector<Node *> &linkedNodeList = currentNode->linkedNodeList;
 
+        // 刷新当前步数
         currentStepCount += walkingLength;
     }
 
@@ -254,6 +305,23 @@ void Graph::reset() {
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
         iter->second->reset();
     }
+}
+
+std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDTypeListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
+    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+    std::map<std::string, int> nodeIDList;
+    for (auto i = 0; i < walkingSequence.size(); ++i) {
+        if (this->nodeList.contains(walkingSequence[i])) {
+            if (!nodeIDList.contains(walkingSequence[i])) {
+                nodeIDList[walkingSequence[i]] = 1;
+                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getIDType(), this->nodeList.at(
+                        walkingSequence[i])->getVisitedCount()));
+            }
+        }
+    }
+    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+
+    return nodeVisitedCountList;
 }
 
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,
@@ -331,3 +399,12 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
         }
     }
 }
+
+bool Graph::cmp(std::pair<std::string, int> a, std::pair<std::string, int> b) {
+    return a.second > b.second;
+}
+
+//template<class Archive>
+//void Graph::serialize(Archive & ar, const unsigned int version) {
+//
+//}

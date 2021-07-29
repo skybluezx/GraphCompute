@@ -4,13 +4,46 @@
 #include "type_defination.h"
 #include "Graph.h"
 
-int main(int argc, char* argv[]) {
-//    google::InitGoogleLogging(argv[0]);
-//    FLAGS_log_dir = "../log";
-//    LOG(INFO) << "hello world";
+/**
+ * 定义命令行参数
+ */
+// 配置文件路径
+DEFINE_string(config_file_path, "", "配置文件路径 ");
+DEFINE_validator(config_file_path, &Util::validatePath);
 
-    // 传入图定义文件建立图
-    Graph graph = Graph("/Users/zhaixiao/graph_define");
+int main(int argc, char* argv[]) {
+    /**
+     * 启动配置部分
+     */
+
+    // 解析命令行参数
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    // 初始化日志模块
+//    google::InitGoogleLogging(argv[0]);
+
+    // 设置配置文件路径
+    Util::configFilePath = FLAGS_config_file_path;
+
+    // 配置日志输出路径
+    std::string logDirectory;
+    Util::getConfig("Path", "log_directory", logDirectory);
+//    FLAGS_log_dir = logDirectory;
+
+    /**
+     * 主逻辑部分
+     */
+
+    // 设置图定义文件
+    std::string graphDefineDirectory;
+    Util::getConfig("Path", "graph_define_directory", graphDefineDirectory);
+
+    // 建立图
+    Graph graph = Graph(graphDefineDirectory);
+
+//    auto nodeTypeList = graph.getNodeTypeList();
+//    for (int i = 0; i < nodeTypeList.size(); ++i) {
+//        std::cout << nodeTypeList[i] << std::endl;
+//    }
 
     /**
      * 样例
@@ -23,29 +56,16 @@ int main(int argc, char* argv[]) {
 //    }
 
     //随机游走
-    std::vector<std::string> stepDefine = {"a", "b"};
+    std::vector<std::string> stepDefine = {"KnowledgePoint", "Question"};
     std::map<std::string, std::string> auxiliaryStep;
-    auxiliaryStep["b"] = "c";
+//    auxiliaryStep["Question"] = "Courseware";
 
-    auto walkingSequence = graph.walk("a1", stepDefine, auxiliaryStep, 1.0, 10, EdgeChooseStrategy::RANDOM, true);
+    auto walkingSequence = graph.walk("f9e12aee12214301b757841df388be97", stepDefine, auxiliaryStep, 1.0, 100000, EdgeChooseStrategy::RANDOM, true);
 
-//    std::cout << graph.nodeList.begin()->second->getNextLinkedNode(edgeChooseStrategy::FIRST)->id;
-//    graph.reset();
-//    graph.setBeginNode("a1");
-//    graph.walkingDirection = Graph::DEEP;
-//    graph.edgeChooseStrategy = Graph::LAST;
-//    graph.walkingStep = 10;
-//
-//    GraphIterator graphIterator = graph.begin();
-//
-//    std::cout << graphIterator->getLinkInfo() << std::endl;
-
-//    graph.walk();
-
-//    std::cout << graph.nodeList.size() << std::endl;
-//    for (const auto &node : graph.nodeList) {
-//        std::cout << node.second->getLinkInfo() << std::endl;
-//    }
+    std::vector<std::pair<std::string, int>> result = graph.getSortedNodeIDTypeListByVisitedCount(walkingSequence);
+    for (auto i = 0; i < 100; ++i) {
+        std::cout << result[i].first << ": " << result[i].second << std::endl;
+    }
 
     return 0;
 }

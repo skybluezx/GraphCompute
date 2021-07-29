@@ -25,6 +25,10 @@ const std::string &Node::getType() const {
     return this->type;
 }
 
+const std::string Node::getIDType() const {
+    return this->type + ":" + this->id;
+}
+
 const std::vector<Node *> &Node::getLinkedNodeList() const {
     return this->linkedNodeList;
 }
@@ -55,7 +59,7 @@ const std::vector<Node*> Node::getNoVisitedLinkedNodeList() const {
     // 遍历当前点的邻接列表
     for (auto nodeIter = this->linkedNodeList.begin(); nodeIter != this->linkedNodeList.end(); ++nodeIter) {
         // 判断当前邻接点是否已被访问
-        if (!(*nodeIter)->isVisit()) {
+        if (!(*nodeIter)->isVisited()) {
             // 未访问则加入列表
             result.push_back(*nodeIter);
         }
@@ -78,12 +82,16 @@ void Node::visit() {
     this->vistedCount++;
 }
 
-bool Node::isVisit() const {
+bool Node::isVisited() const {
     if (this->vistedCount > 0) {
         return true;
     } else {
         return false;
     }
+}
+
+int Node::getVisitedCount() const {
+    return this->vistedCount;
 }
 
 Node *const Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, const std::string &type) {
@@ -135,7 +143,7 @@ Node *const Node::getNextLinkedNode(const std::vector<Node *> &nodeList, const E
     } else if (strategy == FIRST_NO_VISIT) {
         // 选择邻接列表中第一条未访问的边
         for (auto i = 0; i < nodeList.size(); ++i) {
-            if (!nodeList[i]->isVisit()) {
+            if (!nodeList[i]->isVisited()) {
                 nextNode = nodeList[i];
             }
         }
@@ -145,7 +153,7 @@ Node *const Node::getNextLinkedNode(const std::vector<Node *> &nodeList, const E
     } else if (strategy == LAST_NO_VISIT) {
         // 选择邻接列表中最后一条未访问过的边
         for (auto i = nodeList.size() - 1; i >= 0; --i) {
-            if (!nodeList[i]->isVisit()) {
+            if (!nodeList[i]->isVisited()) {
                 nextNode = nodeList[i];
             }
         }

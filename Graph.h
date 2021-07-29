@@ -40,6 +40,12 @@ public:
      */
     const std::map<const std::string, Node *const> &getNodeList() const;
 
+    const int getNodeVisitedCount(const std::string &id) const;
+
+    const std::string getNodeType(const std::string &id) const;
+
+    std::vector<std::string> getNodeTypeList() const;
+
     /**
      * 遍历方法
      * 根据指定的开始节点遍历图中全部节点
@@ -91,6 +97,13 @@ public:
      */
     void reset();
 
+    /**
+     *
+     * @return
+     */
+    std::vector<std::pair<std::string, int>> getSortedNodeIDTypeListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
+
+//    template<class Archive> void serialize(Archive & ar, const unsigned int version);
 private:
     /**
      * 遍历的递归方法
@@ -103,6 +116,8 @@ private:
                   Node *const &beginNode,
                   const WalkingDirection &direction,
                   const EdgeChooseStrategy &strategy);
+
+    static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
 
     /**
      * 图中全部点的字典
