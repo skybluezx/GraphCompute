@@ -6,7 +6,6 @@
 
 #include <iostream>
 #include <filesystem>
-#include <fstream>
 #include <stack>
 #include <queue>
 #include <random>
@@ -19,7 +18,7 @@
 
 Graph::Graph() = default;
 
-Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
+Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdgeCount) {
     std::filesystem::path path(graphDefineFileDirectoryPath);
     // 判断图定义文件的路径是否存在
     if (!std::filesystem::exists(path)) {
@@ -111,7 +110,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath) {
                             currentEdgeCount++;
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
 
-                            if (currentEdgeCount > 100000) {
+                            if (readEdgeCount >= 0 && currentEdgeCount > readEdgeCount) {
                                 break;
                             }
                         }
@@ -191,7 +190,7 @@ std::vector<std::string> Graph::traverse(const Node &beginNode, const WalkingDir
 
 std::vector<std::string> Graph::walk(const std::string &beginNodeID,
                                      const std::vector<std::string> &stepDefine,
-                                     const std::map<std::string, std::string> &auxiliaryStep,
+                                     const std::map<std::string, std::string> &auxiliaryEdge,
                                      const float &walkLengthRatio,
                                      const int &totalStepCount,
                                      const EdgeChooseStrategy &strategy,
@@ -292,12 +291,12 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
 
 std::vector<std::string> Graph::walk(const Node &beginNode,
                                      const std::vector<std::string> &stepDefine,
-                                     const std::map<std::string, std::string> &auxiliaryStep,
+                                     const std::map<std::string, std::string> &auxiliaryEdge,
                                      const float &walkLengthRatio,
                                      const int &totalStepCount,
                                      const EdgeChooseStrategy &strategy,
                                      const bool &resetGraph) {
-    return this->walk(beginNode.getID(), stepDefine, auxiliaryStep, walkLengthRatio, totalStepCount, strategy, resetGraph);
+    return this->walk(beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, strategy, resetGraph);
 }
 
 void Graph::reset() {
@@ -307,7 +306,7 @@ void Graph::reset() {
     }
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDTypeListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
     std::map<std::string, int> nodeIDList;
     for (auto i = 0; i < walkingSequence.size(); ++i) {
@@ -316,6 +315,27 @@ std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDTypeListByVisited
                 nodeIDList[walkingSequence[i]] = 1;
                 nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getIDType(), this->nodeList.at(
                         walkingSequence[i])->getVisitedCount()));
+            }
+        }
+    }
+    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+
+    return nodeVisitedCountList;
+}
+
+std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
+    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+    std::map<std::string, int> nodeIDList;
+    for (auto i = 0; i < walkingSequence.size(); ++i) {
+        if (this->nodeList.contains(walkingSequence[i])) {
+            if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
+                if (!nodeIDList.contains(walkingSequence[i])) {
+                    nodeIDList[walkingSequence[i]] = 1;
+                    nodeVisitedCountList.emplace_back(
+                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getIDType(),
+                                                        this->nodeList.at(
+                                                                walkingSequence[i])->getVisitedCount()));
+                }
             }
         }
     }
