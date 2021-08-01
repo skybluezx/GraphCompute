@@ -60,6 +60,8 @@ public:
      */
     std::vector<std::string> getNodeTypeList() const;
 
+    const std::map<std::string, unsigned> &getNodeTypeCountList() const;
+
     /**
      * 遍历方法
      * 根据指定的开始节点遍历图中全部节点

@@ -110,7 +110,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdg
                             currentEdgeCount++;
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
 
-                            if (readEdgeCount >= 0 && currentEdgeCount > readEdgeCount) {
+                            if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
                                 break;
                             }
                         }
@@ -161,6 +161,10 @@ std::vector<std::string> Graph::getNodeTypeList() const {
         typeList.push_back(iter->first);
     }
     return typeList;
+}
+
+const std::map<std::string, unsigned> &Graph::getNodeTypeCountList() const {
+    return this->nodeTypeCountList;
 }
 
 std::vector<std::string> Graph::traverse(const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {

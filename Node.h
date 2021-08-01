@@ -127,6 +127,9 @@ private:
      */
     unsigned int vistedCount = 0;
 
+    /**
+     * 随机引擎
+     */
     std::default_random_engine randomEngine;
 
     /**
