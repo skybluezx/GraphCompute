@@ -1,0 +1,16 @@
+{
+	"name": "walk",
+
+	"beginNodeID": "f9e12aee12214301b757841df388be97",
+	"stepDefine": [
+		"Knowledge",
+		"Question"
+	],
+	"auxiliaryEdge": {
+		"Question": "Courseware"
+	},
+	"walkLengthRatio": 1,
+	"totalStepCount": 100,
+	"strategy": "",
+	"resetGraph": true
+}
