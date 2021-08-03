@@ -2,11 +2,12 @@
 
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/named_condition.hpp>
+#include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
 #include "Util.h"
-#include "type_defination.h"
 #include "Graph.h"
+#include "Command.h"
 
 /**
  * 定义命令行参数
@@ -33,6 +34,10 @@ int main(int argc, char* argv[]) {
     Util::getConfig("Path", "log_directory", logDirectory);
     FLAGS_log_dir = logDirectory;
 
+    // 读取计算结果输出路径
+    std::string resultDirectoryPath;
+    Util::getConfig("Path", "result_directory", resultDirectoryPath);
+
     boost::interprocess::shared_memory_object::remove("shm");
     boost::interprocess::named_mutex::remove("mtx");
     boost::interprocess::named_condition::remove("cnd");
@@ -41,7 +46,9 @@ int main(int argc, char* argv[]) {
             boost::interprocess::open_or_create,
             "shm",
             1024 * 1024 * 5);
-    std::string *commandString = managed_shm.find_or_construct<std::string>("Command")("");
+    typedef boost::interprocess::allocator<char, boost::interprocess::managed_shared_memory::segment_manager> CharAllocator;
+    typedef boost::interprocess::basic_string<char, std::char_traits<char>, CharAllocator> string;
+    string *commandString = managed_shm.find_or_construct<string>("Command")("", managed_shm.get_segment_manager());
     boost::interprocess::named_mutex named_mtx(boost::interprocess::open_or_create, "mtx");
     boost::interprocess::named_condition named_cnd(boost::interprocess::open_or_create, "cnd");
     boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(named_mtx);
@@ -53,8 +60,10 @@ int main(int argc, char* argv[]) {
     // 设置图定义文件
     std::string graphDefineDirectory;
     Util::getConfig("Path", "graph_define_directory", graphDefineDirectory);
+    int readEdgeCount;
+    Util::getConfig("Input", "read_edge_count", readEdgeCount);
     // 建立图
-    Graph graph = Graph(graphDefineDirectory, 10);
+    Graph graph = Graph(graphDefineDirectory, readEdgeCount);
     // 输出图的概要
     auto nodeTypeCountList = graph.getNodeTypeCountList();
     for (auto iter = nodeTypeCountList.begin(); iter != nodeTypeCountList.end(); ++iter) {
@@ -73,8 +82,16 @@ int main(int argc, char* argv[]) {
             } else if (!commandString->empty() && *commandString != "EXIT") {
                 // 收到命令时开始执行
                 LOG(INFO) << "收到任务开始执行！";
-                google::FlushLogFiles(google::INFO);
+                if (*commandString == "RESET") {
+                    graph.reset();
+                    LOG(INFO) << "重置图中节点状态！";
+                } else {
+                    // 执行命令
+                    Command::execute(graph, commandString->c_str(), resultDirectoryPath);
+                }
 
+                // 写入全部日志
+                google::FlushLogFiles(google::INFO);
                 // 执行结束将命令置空阻塞等待
                 *commandString = "";
                 named_cnd.notify_all();
@@ -95,47 +112,6 @@ int main(int argc, char* argv[]) {
     boost::interprocess::shared_memory_object::remove("shm");
     boost::interprocess::named_mutex::remove("mtx");
     boost::interprocess::named_condition::remove("cnd");
-
-
-//        /**
-//         * 图操作
-//         */
-//
-//        /**
-//         * 遍历
-//         * 深度/广度优先遍历
-//         */
-////    auto traverseResult = graph.traverse("a1", WalkingDirection::WIDE, EdgeChooseStrategy::RANDOM_NO_VISIT);
-////    for (auto i = traverseResult.begin(); i != traverseResult.end(); ++i) {
-////        std::cout << *i << std::endl;
-////    }
-//
-//        /**
-//         * 游走
-//         * 随机游走
-//         */
-//        // 定义步的边组成
-//        std::vector<std::string> stepDefine = {"KnowledgePoint", "Question"};
-//        // 定义辅助边
-//        std::map<std::string, std::string> auxiliaryEdge;
-//        auxiliaryEdge["Question"] = "Courseware";
-//        // 游走
-//        auto walkingSequence = graph.walk("f9e12aee12214301b757841df388be97",
-//                                          stepDefine,
-//                                          auxiliaryEdge,
-//                                          1.0,
-//                                          100000,
-//                                          EdgeChooseStrategy::RANDOM,
-//                                          true);
-//        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-//        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeIDListByVisitedCount(walkingSequence,
-//                                                                                                  "Question");
-//        int topSize = 100;
-//        if (topSize > result.size()) topSize = result.size();
-//        for (auto i = 0; i < topSize; ++i) {
-//            std::cout << result[i].first << ": " << result[i].second << std::endl;
-//        }
-//    }
 
     return 0;
 }

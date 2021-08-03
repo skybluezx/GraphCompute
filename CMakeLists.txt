@@ -10,9 +10,14 @@ if(NOT Boost_FOUND)
     message("Boost not found")
 endif()
 
-add_executable(GraphCompute graph_compute_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h)
+add_executable(GraphCompute graph_compute_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
 target_link_libraries (GraphCompute glog::glog)
 target_link_libraries(GraphCompute ${Boost_LIBRARIES})
 
 add_executable(GraphComputeClient graph_compute_client.cpp)
+target_link_libraries (GraphComputeClient glog::glog)
 target_link_libraries(GraphComputeClient ${Boost_LIBRARIES})
+
+add_executable(GraphComputeTest dev_test.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
+target_link_libraries (GraphComputeTest glog::glog)
+target_link_libraries(GraphComputeTest ${Boost_LIBRARIES})
