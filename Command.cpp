@@ -39,6 +39,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         std::map<std::string, std::string> auxiliaryEdge;
         for (auto iter = commandObj.at("auxiliaryEdge").as_object().begin(); iter != commandObj.at("auxiliaryEdge").as_object().end(); ++iter) {
             auxiliaryEdge[iter->key_c_str()] = iter->value().as_string().c_str();
+            // Todo
+            // 辅助边应该具有方向且应该从被辅助点指向辅助点
+            auxiliaryEdge[iter->value().as_string().c_str()] = iter->key_c_str();
+        }
+
+        for (auto iter = auxiliaryEdge.begin(); iter != auxiliaryEdge.end(); ++iter) {
+            std::cout << iter->first << " " << iter->second << std::endl;
         }
 
         double walkLengthRatio = commandObj.at("walkLengthRatio").as_double();

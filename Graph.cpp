@@ -229,8 +229,6 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
     }
 
     // 访问开始点
-    beginNode->visit();
-    int stepTypeIndex;
     Node *currentNode = beginNode;
 
     int currentStepCount = 0;
@@ -239,28 +237,64 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
         LOG(INFO) << "新游走！当前步数：" << currentStepCount << "/" << totalStepCount;
-
-        stepTypeIndex = 1;
         // 计算当前步游走长度
-        walkingLength = 100;
-
+        // Todo
+        // 步长的计算！！
+        if (walkLengthRatio >= 0) {
+            walkingLength = currentNode->getLinkedNodeMapList().at(stepDefine[1]).size() * walkLengthRatio;
+        } else {
+            walkingLength = 0 - walkLengthRatio;
+        }
         // 遍历步长
         for (int i = 0; i < walkingLength; ++i) {
             LOG(INFO) << "向前一步！当前游走的步数：" << i + 1 << "/" << walkingLength;
-
-            // 访问当前步的开始点
-            currentNode->visit();
-            walkingSequence.push_back(currentNode->getID());
-            LOG(INFO) << "访问当前步的开始点:" << stepDefine[0] << ":" << currentNode->getID();
-
             // 遍历步的组成
-            for (auto j = stepTypeIndex; j < stepDefine.size(); ++j) {
-                currentNode = currentNode->getNextLinkedNode(EdgeChooseStrategy::RANDOM, stepDefine[j]);
-
+            auto j = 0;
+            while (j < stepDefine.size()) {
                 if (currentNode != nullptr) {
+                    // 访问当前步的开始点
                     currentNode->visit();
                     walkingSequence.push_back(currentNode->getID());
-                    LOG(INFO) << "访问下一点：" << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+                    if (j == 0) {
+                        LOG(INFO) << "访问当前步的开始点:" << stepDefine[0] << ":" << currentNode->getID();
+                    } else {
+                        LOG(INFO) << "访问下一点：" << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+                    }
+
+                    // 访问辅助边
+                    // Todo
+                    // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
+                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再运用辅助边）
+                    if (auxiliaryEdge.contains(currentNode->getType())) {
+                        LOG(INFO) << "访问辅助边";
+                        auto auxiliaryNode = currentNode->getNextLinkedNode(strategy, auxiliaryEdge.at(
+                                currentNode->getType()));
+                        if (auxiliaryNode != nullptr) {
+                            auxiliaryNode->visit();
+                            walkingSequence.push_back(auxiliaryNode->getID());
+                            LOG(INFO) << "访问辅助点：" << auxiliaryNode->getType() << ":" << "节点ID："
+                                      << auxiliaryNode->getID();
+
+                            currentNode = auxiliaryNode->getNextLinkedNode(strategy, currentNode->getType());
+                            currentNode->visit();
+                            walkingSequence.push_back(currentNode->getID());
+                            LOG(INFO) << "辅助点返回：" << currentNode->getType() << ":" << "节点ID："
+                                      << currentNode->getID();
+                        } else {
+                            LOG(INFO) << "当前点无辅助边！";
+                        }
+                    } else {
+                        LOG(INFO) << "当前种类的点不存在辅助边！";
+                    }
+
+                    if (j < stepDefine.size() - 1) {
+                        currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[j + 1]);
+                    } else {
+                        currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[0]);
+                        LOG(INFO) << "完成一步！前进至下一步的开始节点";
+                    }
+
+                    j++;
                 } else {
                     // ToDo
                     // 重启策略
@@ -269,20 +303,6 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
                     LOG(WARNING) << "访问失败！不存在步长定义中指定类型的当前点！";
                     break;
                 }
-            }
-
-            // 完成当前步的游走
-            // 前进至下一步的开始节点
-            if (currentNode != nullptr) {
-                LOG(INFO) << "完成一步！前进至下一步的开始节点";
-                currentNode = currentNode->getNextLinkedNode(EdgeChooseStrategy::RANDOM, stepDefine[0]);
-            } else {
-                // ToDo
-                // 重启策略
-
-                // 当前游走到的点已经没有步长定义中指定类型的连接点
-                LOG(WARNING) << "当前步的结束点不存在边连接至步下一步的开始点！";
-                break;
             }
         }
 

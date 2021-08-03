@@ -9,8 +9,8 @@
 	"auxiliaryEdge": {
 		"Question": "Courseware"
 	},
-	"walkLengthRatio": 1.0,
-	"totalStepCount": 100,
+	"walkLengthRatio": -100.0,
+	"totalStepCount": 1000,
 	"strategy": "RANDOM",
 	"resetGraph": true,
 	
