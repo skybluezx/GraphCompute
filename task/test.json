@@ -2,7 +2,7 @@
 	"name": "walk",
 
 	"beginNodeType": "KnowledgePoint",
-	"beginNodeID": "f9e12aee12214301b757841df388be97",
+	"beginNodeID": "99231e6116ab4a44af282427d7b89713",
 	"stepDefine": [
 		"KnowledgePoint",
 		"Question"
@@ -10,8 +10,8 @@
 	"auxiliaryEdge": {
 		"Question": "Courseware"
 	},
-	"walkLengthRatio": -100.0,
-	"totalStepCount": 100000,
+	"walkLengthRatio": 1.0,
+	"totalStepCount": 1000000,
 	"strategy": "RANDOM",
 	"resetGraph": true,
 	

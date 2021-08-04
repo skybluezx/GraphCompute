@@ -202,7 +202,7 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
     }
 
     // 获取开始点ID对应的点指针
-    Node *const &beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
+    Node *beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
 
     // 检查游走步定义是否正确
     if (!stepDefine.empty()) {
@@ -222,8 +222,8 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
         this->reset();
     }
 
-    // 访问开始点
-    Node *currentNode = beginNode;
+    // 定义开始点指针
+    Node *currentNode;
     // 初始化当前已完成步数为0
     int currentStepCount = 0;
     // 定义当前游走的步长
@@ -232,6 +232,9 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
         LOG(INFO) << "新游走！当前步数：" << currentStepCount << "/" << totalStepCount;
+        // 访问开始点
+        currentNode = beginNode;
+
         // 计算当前步游走长度
         // Todo
         // 步长的计算需要更多试验和思考！！
@@ -283,10 +286,14 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                             // 从辅助点返回
                             // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                             currentNode = auxiliaryNode->getNextLinkedNode(strategy, currentNode->getType());
-                            currentNode->visit();
-                            walkingSequence.push_back(currentNode->getTypeID());
-                            LOG(INFO) << "辅助点返回：" << currentNode->getType() << ":" << "节点ID："
-                                      << currentNode->getID();
+                            if (currentNode != nullptr) {
+                                currentNode->visit();
+                                walkingSequence.push_back(currentNode->getTypeID());
+                                LOG(INFO) << "辅助点返回：" << currentNode->getType() << ":" << "节点ID："
+                                          << currentNode->getID();
+                            } else {
+                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+                            }
                         } else {
                             LOG(INFO) << "当前点无辅助边！";
                         }
@@ -312,9 +319,16 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                     // ToDo
                     // 重启策略
                     // 当前游走到的点已经没有步长定义中指定类型的连接点
-                    LOG(WARNING) << "访问失败！不存在步长定义中指定类型的当前点！";
+                    LOG(INFO) << "访问失败！不存在步长定义中指定类型的当前点！";
                     break;
                 }
+            }
+
+            // ToDo
+            // 重启策略
+            // 当前游走到的点已经没有步长定义中指定类型的连接点
+            if (currentNode == nullptr) {
+                break;
             }
         }
 
