@@ -47,16 +47,23 @@ int main(int argc, char* argv[]) {
     }
     google::FlushLogFiles(google::INFO);
 
-    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test.json";
-    std::ifstream jsonFile(json_file_path);
-    std::stringstream buffer;
-    buffer << jsonFile.rdbuf();
-    std::string jsonString(buffer.str());
-    std::cout << jsonString << std::endl;
+//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test.json";
+//    std::ifstream jsonFile(json_file_path);
+//    std::stringstream buffer;
+//    buffer << jsonFile.rdbuf();
+//    std::string jsonString(buffer.str());
+//    std::cout << jsonString << std::endl;
+//
+//    // 读取计算结果输出路径
+//    std::string resultDirectoryPath;
+//    Util::getConfig("Path", "result_directory", resultDirectoryPath);
+//    // 执行命令
+//    Command::execute(graph, jsonString, resultDirectoryPath);
 
-    // 读取计算结果输出路径
-    std::string resultDirectoryPath;
-    Util::getConfig("Path", "result_directory", resultDirectoryPath);
-    // 执行命令
-    Command::execute(graph, jsonString, resultDirectoryPath);
+    std::vector<std::string> idList;
+    auto result1 = graph.isLinked("KnowledgePoint", "f9e12aee12214301b757841df388be97", "Question", "ffec47fd810b41e093f114a17b2e0b27", idList);
+    auto result2 = graph.isLinked("KnowledgePoint", "f9e12aee12214301b757841df388be97", "Question", "jedb69p0s7kyf6u707kqx4lwieuqm96k", idList);
+    auto result3 = graph.isLinked("KnowledgePoint", "f9e12aee12214301b757841df388be97", "Courseware", "74f887a3897a415d969fd4c5cbd84eba", idList);
+    auto result4 = graph.isLinked("KnowledgePoint", "f9e12aee12214301b757841df388be97", "KnowledgePoint", "6oo7ryi0e79zkqai08wbmeohxn6c03ea", idList);
+    std::cout << result1 << result2 << result3 << result4 << std::endl;
 }

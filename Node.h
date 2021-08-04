@@ -41,7 +41,7 @@ public:
      */
     const std::string &getType() const;
 
-    const std::string getIDType() const;
+    const std::string getTypeID() const;
 
     /**
      * 返回该点邻接点列表

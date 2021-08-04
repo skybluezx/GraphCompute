@@ -70,11 +70,11 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdg
                             // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(beginNodePair[1])) {
+                            if (!this->nodeList.contains(beginNodePair[0] + ":" + beginNodePair[1])) {
                                 // 不存在则创建起点对应的点对象
                                 beginNode = new Node(beginNodePair[1], beginNodePair[0]);
                                 // 将创建的点增加至全局点字典
-                                this->nodeList.insert(std::make_pair(beginNode->getID(), beginNode));
+                                this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
                                 if (!this->nodeTypeCountList.contains(beginNode->getType())) {
                                     this->nodeTypeCountList[beginNode->getType()] = 0;
@@ -82,17 +82,17 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdg
                                 this->nodeTypeCountList[beginNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                beginNode = this->nodeList[beginNodePair[1]];
+                                beginNode = this->nodeList[beginNodePair[0] + ":" + beginNodePair[1]];
                             }
 
                             // 初始化终点
                             Node *endNode = nullptr;
                             // 判断终点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(endNodePair[1])) {
+                            if (!this->nodeList.contains(endNodePair[0] + ":" + endNodePair[1])) {
                                 // 不存在则创建终点对应的点对象
                                 endNode = new Node(endNodePair[1], endNodePair[0]);
                                 // 将创建的点增加至全局点字典
-                                this->nodeList.insert(std::make_pair(endNode->getID(), endNode));
+                                this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
 
                                 if (!this->nodeTypeCountList.contains(endNode->getType())) {
                                     this->nodeTypeCountList[endNode->getType()] = 0;
@@ -100,7 +100,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdg
                                 this->nodeTypeCountList[endNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                endNode = this->nodeList[endNodePair[1]];
+                                endNode = this->nodeList[endNodePair[0] + ":" + endNodePair[1]];
                             }
 
                             // 将当前边增加至起点和终点的链表中
@@ -138,20 +138,12 @@ const std::map<const std::string, Node *const> &Graph::getNodeList() const {
     return this->nodeList;
 }
 
-const int Graph::getNodeVisitedCount(const std::string &id) const {
-    if (this->nodeList.contains(id)) {
-        return this->nodeList.at(id)->getVisitedCount();
+const int Graph::getNodeVisitedCount(const std::string &id, const std::string &type) const {
+    if (this->nodeList.contains(type + ":" + id)) {
+        return this->nodeList.at(type + ":" + id)->getVisitedCount();
     } else {
         // 若对应ID的点不存在则返回-1
         return -1;
-    }
-}
-
-const std::string Graph::getNodeType(const std::string &id) const {
-    if (this->nodeList.contains(id)) {
-        return this->nodeList.at(id)->getType();
-    } else {
-        return "";
     }
 }
 
@@ -167,21 +159,21 @@ const std::map<std::string, unsigned> &Graph::getNodeTypeCountList() const {
     return this->nodeTypeCountList;
 }
 
-std::vector<std::string> Graph::traverse(const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {
+std::vector<std::string> Graph::traverse(const std::string &beginNodeType, const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {
     // 初始化遍历序列的ID列表
     // 序列为节点按遍历前后顺序形成ID列表
     std::vector<std::string> traverseSequenceList;
     if (strategy == FIRST_NO_VISIT || strategy == LAST_NO_VISIT || strategy == RANDOM_NO_VISIT) {
         // 查询开始节点在图中是否存在
-        if (this->nodeList.contains(beginNodeID)) {
-            Graph::traverse(traverseSequenceList, this->nodeList.at(beginNodeID), type, strategy);
+        if (this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
+            Graph::traverse(traverseSequenceList, this->nodeList.at(beginNodeType + ":" + beginNodeID), type, strategy);
         } else {
             // 设置的遍历开始节点ID不存在
             LOG(ERROR) << "开始节点不存在！";
         }
     } else {
         // 遍历方法只能使用"未访问"类型的边选择策略
-        LOG(ERROR) << "遍历方法只能选择'FIRST_NO_VISIT'、'LAST_NO_VISIT'或者'RANDOM_NO_VISIT'三种边选择策略不存在！";
+        LOG(ERROR) << "遍历方法只能选择'FIRST_NO_VISIT'、'LAST_NO_VISIT'或者'RANDOM_NO_VISIT'三种边选择策略！";
     }
 
     return traverseSequenceList;
@@ -189,10 +181,11 @@ std::vector<std::string> Graph::traverse(const std::string &beginNodeID, const W
 
 std::vector<std::string> Graph::traverse(const Node &beginNode, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {
     // 调用传入开始节点ID的遍历方法
-    return this->traverse(beginNode.getID(), type, strategy);
+    return this->traverse(beginNode.getType(), beginNode.getID(), type, strategy);
 }
 
-std::vector<std::string> Graph::walk(const std::string &beginNodeID,
+std::vector<std::string> Graph::walk(const std::string &beginNodeType,
+                                     const std::string &beginNodeID,
                                      const std::vector<std::string> &stepDefine,
                                      const std::map<std::string, std::string> &auxiliaryEdge,
                                      const float &walkLengthRatio,
@@ -203,13 +196,13 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
     std::vector<std::string> walkingSequence;
 
     // 检查开始点是否存在
-    if (!this->nodeList.contains(beginNodeID)) {
+    if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
         LOG(ERROR) << "开始点不存在！";
         return walkingSequence;
     }
 
     // 获取开始点ID对应的点指针
-    Node *const &beginNode = this->nodeList.at(beginNodeID);
+    Node *const &beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
 
     // 检查游走步定义是否正确
     if (!stepDefine.empty()) {
@@ -263,7 +256,7 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
                 if (currentNode != nullptr) {
                     // 访问当前步的开始点
                     currentNode->visit();
-                    walkingSequence.push_back(currentNode->getID());
+                    walkingSequence.push_back(currentNode->getTypeID());
                     // 输出日志
                     if (j == 0) {
                         // 每一步的开始点
@@ -284,14 +277,14 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
                         if (auxiliaryNode != nullptr) {
                             // 存在辅助点则访问
                             auxiliaryNode->visit();
-                            walkingSequence.push_back(auxiliaryNode->getID());
+                            walkingSequence.push_back(auxiliaryNode->getTypeID());
                             LOG(INFO) << "访问辅助点：" << auxiliaryNode->getType() << ":" << "节点ID："
                                       << auxiliaryNode->getID();
                             // 从辅助点返回
                             // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                             currentNode = auxiliaryNode->getNextLinkedNode(strategy, currentNode->getType());
                             currentNode->visit();
-                            walkingSequence.push_back(currentNode->getID());
+                            walkingSequence.push_back(currentNode->getTypeID());
                             LOG(INFO) << "辅助点返回：" << currentNode->getType() << ":" << "节点ID："
                                       << currentNode->getID();
                         } else {
@@ -339,7 +332,7 @@ std::vector<std::string> Graph::walk(const Node &beginNode,
                                      const int &totalStepCount,
                                      const EdgeChooseStrategy &strategy,
                                      const bool &resetGraph) {
-    return this->walk(beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, strategy, resetGraph);
+    return this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, strategy, resetGraph);
 }
 
 void Graph::reset() {
@@ -349,14 +342,14 @@ void Graph::reset() {
     }
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
     std::map<std::string, int> nodeIDList;
     for (auto i = 0; i < walkingSequence.size(); ++i) {
         if (this->nodeList.contains(walkingSequence[i])) {
             if (!nodeIDList.contains(walkingSequence[i])) {
                 nodeIDList[walkingSequence[i]] = 1;
-                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getIDType(), this->nodeList.at(
+                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
                         walkingSequence[i])->getVisitedCount()));
             }
         }
@@ -366,18 +359,17 @@ std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCoun
     return nodeVisitedCountList;
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-    std::map<std::string, int> nodeIDList;
+    std::map<std::string, int> nodeTypeIDList;
     for (auto i = 0; i < walkingSequence.size(); ++i) {
         if (this->nodeList.contains(walkingSequence[i])) {
             if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
-                if (!nodeIDList.contains(walkingSequence[i])) {
-                    nodeIDList[walkingSequence[i]] = 1;
+                if (!nodeTypeIDList.contains(walkingSequence[i])) {
+                    nodeTypeIDList[walkingSequence[i]] = 1;
                     nodeVisitedCountList.emplace_back(
-                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getIDType(),
-                                                        this->nodeList.at(
-                                                                walkingSequence[i])->getVisitedCount()));
+                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(),
+                                                        this->nodeList.at(walkingSequence[i])->getVisitedCount()));
                 }
             }
         }
@@ -387,8 +379,46 @@ std::vector<std::pair<std::string, int>> Graph::getSortedNodeIDListByVisitedCoun
     return nodeVisitedCountList;
 }
 
+bool Graph::isLinked(const std::string &aNodeType, const std::string &aNodeID, const std::string &bNodeType, const std::string &bNodeID, std::vector<std::string> &traverseSequenceList) {
+    bool result;
+
+    // 清空遍历路径
+    std::vector<std::string> list;
+    traverseSequenceList.swap(list);
+
+    // 判断两点在图中是否存在
+    if (!this->nodeList.contains(aNodeType + ":" + aNodeID) || !this->nodeList.contains(bNodeType + ":" + bNodeID)) {
+        result = false;
+    }
+    // 获取起点指针
+    Node *beginNode = this->nodeList.at(aNodeType + ":" + aNodeID);
+
+    this->reset();
+
+    // 深度优先遍历
+    // 选择FIRST_NO_VISIT策略
+    // 配置结束点ID
+    Graph::traverse(traverseSequenceList, beginNode, WalkingDirection::DEEP, EdgeChooseStrategy::FIRST_NO_VISIT, bNodeType + ":" + bNodeID);
+
+    // 判断遍历ID路径是否为空
+    if (!traverseSequenceList.empty()) {
+        // 判断结束点是否为重点ID
+        std::cout << traverseSequenceList[traverseSequenceList.size() - 1] << std::endl;
+        std::cout << bNodeType + ":" + bNodeID << std::endl;
+        if (traverseSequenceList[traverseSequenceList.size() - 1] == bNodeType + ":" + bNodeID) {
+            result = true;
+        } else {
+            result = false;
+        }
+    } else {
+        result = false;
+    }
+
+    return result;
+}
+
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,
-                     const EdgeChooseStrategy &strategy) {
+                     const EdgeChooseStrategy &strategy, const std::string &endNodeTypeID) {
     std::default_random_engine randomEngine(std::chrono::system_clock::now().time_since_epoch().count());
 
     if (direction == WalkingDirection::DEEP) {
@@ -402,7 +432,13 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
             // 访问该点
             n->visit();
             // 将该点ID加入遍历去序列
-            traverseSequenceList.push_back(n->getID());
+            traverseSequenceList.push_back(n->getTypeID());
+
+            // 若配置了遍历重点则判断是否到达终点
+            // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
+            if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
+                break;
+            }
 
             // 获得该点全部未访问链接节点
             const std::vector<Node*> &linkedNodeList = n->getNoVisitedLinkedNodeList();
@@ -440,7 +476,13 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
             // 访问该点
             n->visit();
             // 将该点ID加入遍历去序列
-            traverseSequenceList.push_back(n->getID());
+            traverseSequenceList.push_back(n->getTypeID());
+
+            // 若配置了遍历重点则判断是否到达终点
+            // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
+            if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
+                break;
+            }
 
             // 获得该点全部未访问链接节点
             const std::vector<Node *> &linkedNodeList = n->getNoVisitedLinkedNodeList();
@@ -466,8 +508,3 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
 bool Graph::cmp(std::pair<std::string, int> a, std::pair<std::string, int> b) {
     return a.second > b.second;
 }
-
-//template<class Archive>
-//void Graph::serialize(Archive & ar, const unsigned int version) {
-//
-//}

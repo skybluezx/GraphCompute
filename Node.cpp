@@ -25,7 +25,7 @@ const std::string &Node::getType() const {
     return this->type;
 }
 
-const std::string Node::getIDType() const {
+const std::string Node::getTypeID() const {
     return this->type + ":" + this->id;
 }
 

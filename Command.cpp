@@ -20,15 +20,17 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
          * 遍历
          * 深度/广度优先遍历
          */
-        auto traverseResult = graph.traverse("a1", WalkingDirection::WIDE, EdgeChooseStrategy::RANDOM_NO_VISIT);
-        for (auto i = traverseResult.begin(); i != traverseResult.end(); ++i) {
-            std::cout << *i << std::endl;
-        }
+//        auto traverseResult = graph.traverse("a1", WalkingDirection::WIDE, EdgeChooseStrategy::RANDOM_NO_VISIT);
+//        for (auto i = traverseResult.begin(); i != traverseResult.end(); ++i) {
+//            std::cout << *i << std::endl;
+//        }
     } else if (commandObj.at("name").get_string() == "walk") {
         /**
          * 游走
          * 随机游走
          */
+        // 获取开始点类型
+        std::string beginNodeType = commandObj.at("beginNodeType").as_string().c_str();
         // 获取开始点ID
         std::string beginNodeID = commandObj.at("beginNodeID").as_string().c_str();
         // 获取步的边组成
@@ -73,7 +75,8 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         int visitedCountTopN = commandObj.at("visitedCountTopN").as_int64();
 
         // 游走
-        auto walkingSequence = graph.walk(beginNodeID,
+        auto walkingSequence = graph.walk(beginNodeType,
+                                          beginNodeID,
                                           stepDefine,
                                           auxiliaryEdge,
                                           walkLengthRatio,
@@ -82,7 +85,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                           resetGraph);
 
         // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeIDListByVisitedCount(walkingSequence, targetNodeType);
+        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeTypeIDListByVisitedCount(walkingSequence, targetNodeType);
         // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
         if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
         std::ofstream resultFile;

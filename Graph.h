@@ -45,14 +45,7 @@ public:
      * @param id
      * @return
      */
-    const int getNodeVisitedCount(const std::string &id) const;
-
-    /**
-     * 获得指定ID的节点类型
-     * @param id
-     * @return
-     */
-    const std::string getNodeType(const std::string &id) const;
+    const int getNodeVisitedCount(const std::string &id, const std::string &type) const;
 
     /**
      * 获得图中节点的全部类型列表
@@ -69,7 +62,7 @@ public:
      * @param type 遍历方式（深度或宽度）
      * @return 遍历顺序对应ID列表
      */
-    std::vector<std::string> traverse(const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
+    std::vector<std::string> traverse(const std::string &beginNodeType, const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
     // 遍历方法的多态
     // 传入开始点对象
     std::vector<std::string> traverse(const Node &beginNode, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
@@ -85,7 +78,8 @@ public:
      * @param strategy
      * @return
      */
-    std::vector<std::string> walk(const std::string &beginNodeID,
+    std::vector<std::string> walk(const std::string &beginNodeType,
+                                  const std::string &beginNodeID,
                                   const std::vector<std::string> &stepDefine,
                                   const std::map<std::string, std::string> &auxiliaryEdge,
                                   const float &walkLengthRatio,
@@ -113,16 +107,23 @@ public:
      * 返回节点ID和访问次数所组成Pair的列表
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
+    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
 
     /**
      * 获取访问列表中指定类型全部节点按照访问次数从大到小顺序的列表
      * 返回节点ID和访问次数所组成Pair的列表
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedNodeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const;
+    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const;
 
-//    template<class Archive> void serialize(Archive & ar, const unsigned int version);
+    /**
+     * 判断两点在图中是否相连
+     * @param aNodeID 起点ID
+     * @param bNodeID 终点ID
+     * @param traverseSequenceList 遍历的节点ID路径
+     * @return
+     */
+    bool isLinked(const std::string &aNodeType, const std::string &aNodeID, const std::string &bNodeType, const std::string &bNodeID, std::vector<std::string> &traverseSequenceList);
 private:
     /**
      * 遍历的递归方法
@@ -134,7 +135,8 @@ private:
     static void traverse(std::vector<std::string> &traverseSequenceList,
                   Node *const &beginNode,
                   const WalkingDirection &direction,
-                  const EdgeChooseStrategy &strategy);
+                  const EdgeChooseStrategy &strategy,
+                  const std::string &endNodeTypeID = "");
 
     /**
      * 节点访问次数的比较方法
