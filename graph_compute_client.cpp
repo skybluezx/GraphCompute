@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     // 初始化日志模块
     google::InitGoogleLogging(argv[0]);
 
-    // 创建共享变量
+    // 创建共享变量、互斥量和条件变量
     boost::interprocess::managed_shared_memory managed_shm(
             boost::interprocess::open_or_create,
             "shm",
@@ -30,11 +30,8 @@ int main(int argc, char* argv[]) {
     typedef boost::interprocess::allocator<char, boost::interprocess::managed_shared_memory::segment_manager> CharAllocator;
     typedef boost::interprocess::basic_string<char, std::char_traits<char>, CharAllocator> string;
     string* command = managed_shm.find<string>("Command").first;
-    // 创建互斥量
     boost::interprocess::named_mutex named_mtx(boost::interprocess::open_or_create, "mtx");
-    // 创建条件变量
     boost::interprocess::named_condition named_cnd(boost::interprocess::open_or_create, "cnd");
-    // 锁定互斥量
     boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(named_mtx);
 
     // action参数优先判断

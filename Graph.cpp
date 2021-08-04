@@ -208,6 +208,7 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
         return walkingSequence;
     }
 
+    // 获取开始点ID对应的点指针
     Node *const &beginNode = this->nodeList.at(beginNodeID);
 
     // 检查游走步定义是否正确
@@ -230,8 +231,9 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
 
     // 访问开始点
     Node *currentNode = beginNode;
-
+    // 初始化当前已完成步数为0
     int currentStepCount = 0;
+    // 定义当前游走的步长
     int walkingLength;
 
     // 当游走步数小于总步数时继续游走
@@ -239,42 +241,54 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
         LOG(INFO) << "新游走！当前步数：" << currentStepCount << "/" << totalStepCount;
         // 计算当前步游走长度
         // Todo
-        // 步长的计算！！
+        // 步长的计算需要更多试验和思考！！
         if (walkLengthRatio >= 0) {
+            // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
+            // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
             walkingLength = currentNode->getLinkedNodeMapList().at(stepDefine[1]).size() * walkLengthRatio;
         } else {
+            // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
             walkingLength = 0 - walkLengthRatio;
         }
+
         // 遍历步长
         for (int i = 0; i < walkingLength; ++i) {
-            LOG(INFO) << "向前一步！当前游走的步数：" << i + 1 << "/" << walkingLength;
+            LOG(INFO) << "向前一步！当前游走的总步数：" << i + 1 << "/" << walkingLength;
+
             // 遍历步的组成
+            // 从开始点开始遍历
             auto j = 0;
             while (j < stepDefine.size()) {
+                // 判断当前点是否不存在
                 if (currentNode != nullptr) {
                     // 访问当前步的开始点
                     currentNode->visit();
                     walkingSequence.push_back(currentNode->getID());
+                    // 输出日志
                     if (j == 0) {
+                        // 每一步的开始点
                         LOG(INFO) << "访问当前步的开始点:" << stepDefine[0] << ":" << currentNode->getID();
                     } else {
+                        // 每一步的非开始点
                         LOG(INFO) << "访问下一点：" << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
                     }
 
                     // 访问辅助边
                     // Todo
                     // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
-                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再运用辅助边）
+                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
                     if (auxiliaryEdge.contains(currentNode->getType())) {
                         LOG(INFO) << "访问辅助边";
                         auto auxiliaryNode = currentNode->getNextLinkedNode(strategy, auxiliaryEdge.at(
                                 currentNode->getType()));
                         if (auxiliaryNode != nullptr) {
+                            // 存在辅助点则访问
                             auxiliaryNode->visit();
                             walkingSequence.push_back(auxiliaryNode->getID());
                             LOG(INFO) << "访问辅助点：" << auxiliaryNode->getType() << ":" << "节点ID："
                                       << auxiliaryNode->getID();
-
+                            // 从辅助点返回
+                            // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                             currentNode = auxiliaryNode->getNextLinkedNode(strategy, currentNode->getType());
                             currentNode->visit();
                             walkingSequence.push_back(currentNode->getID());
@@ -287,18 +301,23 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeID,
                         LOG(INFO) << "当前种类的点不存在辅助边！";
                     }
 
+                    // 判断当前是否完成一步
                     if (j < stepDefine.size() - 1) {
+                        // 尚未完成一步继续游走至步长定义中的下一步
                         currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[j + 1]);
                     } else {
+                        // 已完成一步游走至下一步的开始点
                         currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[0]);
                         LOG(INFO) << "完成一步！前进至下一步的开始节点";
                     }
 
+                    // 步长定义的索引增1
                     j++;
                 } else {
+                    // 若不存在则上一个节点没有步长定义中的下一个节点，或者当前步最后一个节点不连接步长定义中的开始点，导致无路可走
+
                     // ToDo
                     // 重启策略
-
                     // 当前游走到的点已经没有步长定义中指定类型的连接点
                     LOG(WARNING) << "访问失败！不存在步长定义中指定类型的当前点！";
                     break;

@@ -29,29 +29,27 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
          * 游走
          * 随机游走
          */
+        // 获取开始点ID
         std::string beginNodeID = commandObj.at("beginNodeID").as_string().c_str();
-        // 定义步的边组成
+        // 获取步的边组成
         std::vector<std::string> stepDefine;
         for (auto iter = commandObj.at("stepDefine").as_array().begin(); iter != commandObj.at("stepDefine").as_array().end(); ++iter) {
             stepDefine.push_back(iter->as_string().c_str());
         }
-        // 定义辅助边
+        // 获取辅助边
         std::map<std::string, std::string> auxiliaryEdge;
         for (auto iter = commandObj.at("auxiliaryEdge").as_object().begin(); iter != commandObj.at("auxiliaryEdge").as_object().end(); ++iter) {
             auxiliaryEdge[iter->key_c_str()] = iter->value().as_string().c_str();
             // Todo
             // 辅助边应该具有方向且应该从被辅助点指向辅助点
+            // 目前为了容错，将辅助的双向都进行了存储
             auxiliaryEdge[iter->value().as_string().c_str()] = iter->key_c_str();
         }
-
-        for (auto iter = auxiliaryEdge.begin(); iter != auxiliaryEdge.end(); ++iter) {
-            std::cout << iter->first << " " << iter->second << std::endl;
-        }
-
+        // 获取单次游走步长参数
         double walkLengthRatio = commandObj.at("walkLengthRatio").as_double();
-
+        // 获取总游走步长
         unsigned int totalStepCount = commandObj.at("totalStepCount").as_int64();
-
+        // 获取边选择策略
         std::string strategyString = commandObj.at("strategy").as_string().c_str();
         EdgeChooseStrategy strategy;
         if (strategyString == "FIRST") {
@@ -67,10 +65,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         } else if (strategyString == "RANDOM_NO_VISIT") {
             strategy = EdgeChooseStrategy::RANDOM_NO_VISIT;
         }
-
+        // 获取是否重置图状态
         bool resetGraph = commandObj.at("resetGraph").as_bool();
-
+        // 获取目标点类型
         std::string targetNodeType = commandObj.at("targetNodeType").as_string().c_str();
+        // 获取访问次数TopN
         int visitedCountTopN = commandObj.at("visitedCountTopN").as_int64();
 
         // 游走
@@ -81,17 +80,16 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                           totalStepCount,
                                           strategy,
                                           resetGraph);
-        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeIDListByVisitedCount(walkingSequence,targetNodeType);
-        if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
 
+        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeIDListByVisitedCount(walkingSequence, targetNodeType);
+        // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+        if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
         std::ofstream resultFile;
         resultFile.open(resultDirectoryPath + "/result.dat");
-
         for (auto i = 0; i < visitedCountTopN; ++i) {
             resultFile << result[i].first << ": " << result[i].second << std::endl;
         }
-
         resultFile.close();
     }
 }

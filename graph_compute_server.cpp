@@ -38,10 +38,13 @@ int main(int argc, char* argv[]) {
     std::string resultDirectoryPath;
     Util::getConfig("Path", "result_directory", resultDirectoryPath);
 
+    // 删除系统中可能存在的服务端需要用到的共享变量、互斥量和条件变量
+    // 防止因之前服务端异常退出导致相关进程同步变量被锁定而本次无法启动
     boost::interprocess::shared_memory_object::remove("shm");
     boost::interprocess::named_mutex::remove("mtx");
     boost::interprocess::named_condition::remove("cnd");
 
+    // 设置服务端和客户端通信和同步需要用到的共享变量、互斥量和条件变量
     boost::interprocess::managed_shared_memory managed_shm(
             boost::interprocess::open_or_create,
             "shm",
@@ -57,9 +60,10 @@ int main(int argc, char* argv[]) {
      * 主逻辑部分
      */
 
-    // 设置图定义文件
+    // 设置图定义文件目录
     std::string graphDefineDirectory;
     Util::getConfig("Path", "graph_define_directory", graphDefineDirectory);
+    // 读取配置文件中设置的边读取个数
     int readEdgeCount;
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
     // 建立图
@@ -69,10 +73,16 @@ int main(int argc, char* argv[]) {
     for (auto iter = nodeTypeCountList.begin(); iter != nodeTypeCountList.end(); ++iter) {
         LOG(INFO) << iter->first << ":" << iter->second;
     }
+
+    // 输出全部日志
+    // 因为接下来将进入服务端循环等待客户端请求的部分
+    // 该部分涉及进程阻塞，如不一次性将当前日志输出可能面临被阻塞而无法及时输出的风险
     google::FlushLogFiles(google::INFO);
 
+    // 服务端循环等待客户端请求
     while (true) {
         try {
+            // 根据共享变量中命令字符串内容的不同触发不同操作
             if (commandString->empty()) {
                 // 当前没有命令传入时阻塞等待
                 LOG(INFO) << "等待任务中...";
@@ -82,11 +92,21 @@ int main(int argc, char* argv[]) {
             } else if (!commandString->empty() && *commandString != "EXIT") {
                 // 收到命令时开始执行
                 LOG(INFO) << "收到任务开始执行！";
+
+                // 判断是系统命令还是任务命令
                 if (*commandString == "RESET") {
+                    // 系统命令
+                    // 图状态重置
                     graph.reset();
                     LOG(INFO) << "重置图中节点状态！";
+                } else if (*commandString == "EXIT") {
+                    // 系统命令
+                    // 服务端退出
+                    LOG(INFO) << "结束服务！";
+                    break;
                 } else {
-                    // 执行命令
+                    // 任务命令
+                    // 将该命令的json字符串传入命令的执行方法执行
                     Command::execute(graph, commandString->c_str(), resultDirectoryPath);
                 }
 
@@ -96,13 +116,10 @@ int main(int argc, char* argv[]) {
                 *commandString = "";
                 named_cnd.notify_all();
                 named_cnd.wait(lock);
-            } else if (*commandString == "EXIT") {
-                // 获得退出命令后退出
-                LOG(INFO) << "结束服务！";
-                break;
             }
         } catch (std::exception &e) {
-
+            // Todo
+            // 服务端不因为常见异常退出仍需完善
         }
     }
 
