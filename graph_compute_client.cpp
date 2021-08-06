@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <ctime>
+#include <chrono>
 
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/named_condition.hpp>
@@ -63,9 +65,14 @@ int main(int argc, char* argv[]) {
         std::string jsonString(buffer.str());
         // 将读取内容存入共享内存
         command->insert(0, jsonString.c_str());
+
         // 唤醒服务端进程并阻塞客户端等待响应
+        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
         named_cnd.notify_all();
         named_cnd.wait(lock);
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+        std::cout << "[INFO] 服务端执行时间：" << programSpan.count() << "秒" << std::endl;
     } else {
         // 其他情况显示说明
         std::cout << "[INFO] GraphCompute客户端" << std::endl;

@@ -15,7 +15,18 @@
 void Command::execute(Graph &graph, const std::string &command, const std::string &resultDirectoryPath) {
     auto commandObj = boost::json::parse(command);
 
-    if (commandObj.at("name").as_string() == "traverse") {
+    if (commandObj.at("name").as_string() == "exclude_node") {
+        /**
+         * 排除节点
+         */
+        std::vector<std::string> excludeNodeTypeIDList;
+        for (auto iter = commandObj.at("type_id").as_array().begin(); iter != commandObj.at("type_id").as_array().end(); ++iter) {
+            excludeNodeTypeIDList.push_back(iter->as_string().c_str());
+        }
+        std::cout << graph.getNodeList().at("KnowledgePoint:f9e12aee12214301b757841df388be97")->getLinkedNodeMapList().at("Question").first.size() << std::endl;
+        graph.excludeNodes(excludeNodeTypeIDList);
+        std::cout << graph.getNodeList().at("KnowledgePoint:f9e12aee12214301b757841df388be97")->getLinkedNodeMapList().at("Question").first.size() << std::endl;
+    } else if (commandObj.at("name").as_string() == "traverse") {
         /**
          * 遍历
          * 深度/广度优先遍历
@@ -32,7 +43,10 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         // 获取开始点类型
         std::string beginNodeType = commandObj.at("beginNodeType").as_string().c_str();
         // 获取开始点ID
-        std::string beginNodeID = commandObj.at("beginNodeID").as_string().c_str();
+        std::vector<std::string> beginNodeIDList ;
+        for (auto iter = commandObj.at("beginNodeID").as_array().begin(); iter != commandObj.at("beginNodeID").as_array().end(); ++iter) {
+            beginNodeIDList.push_back(iter->as_string().c_str());
+        }
         // 获取步的边组成
         std::vector<std::string> stepDefine;
         for (auto iter = commandObj.at("stepDefine").as_array().begin(); iter != commandObj.at("stepDefine").as_array().end(); ++iter) {
@@ -74,25 +88,27 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         // 获取访问次数TopN
         int visitedCountTopN = commandObj.at("visitedCountTopN").as_int64();
 
-        // 游走
-        auto walkingSequence = graph.walk(beginNodeType,
-                                          beginNodeID,
-                                          stepDefine,
-                                          auxiliaryEdge,
-                                          walkLengthRatio,
-                                          totalStepCount,
-                                          strategy,
-                                          resetGraph);
+        for (auto i = 0; i < beginNodeIDList.size(); ++i) {
+            // 游走
+            auto walkingSequence = graph.walk(beginNodeType,
+                                              beginNodeIDList[i],
+                                              stepDefine,
+                                              auxiliaryEdge,
+                                              walkLengthRatio,
+                                              totalStepCount,
+                                              resetGraph);
 
-        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-        std::vector<std::pair<std::string, int>> result = graph.getSortedNodeTypeIDListByVisitedCount(walkingSequence, targetNodeType);
-        // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-        if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
-        std::ofstream resultFile;
-        resultFile.open(resultDirectoryPath + "/result.dat");
-        for (auto i = 0; i < visitedCountTopN; ++i) {
-            resultFile << result[i].first << ": " << result[i].second << std::endl;
+            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+            std::vector<std::pair<std::string, int>> result = graph.getSortedNodeTypeIDListByVisitedCount(
+                    walkingSequence, targetNodeType);
+            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+            if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
+            std::ofstream resultFile;
+            resultFile.open(resultDirectoryPath + "/" + beginNodeType + ":" + beginNodeIDList[i] + "_result.dat");
+            for (auto i = 0; i < visitedCountTopN; ++i) {
+                resultFile << result[i].first << ": " << result[i].second << std::endl;
+            }
+            resultFile.close();
         }
-        resultFile.close();
     }
 }

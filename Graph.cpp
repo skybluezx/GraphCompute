@@ -190,7 +190,6 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                                      const std::map<std::string, std::string> &auxiliaryEdge,
                                      const float &walkLengthRatio,
                                      const int &totalStepCount,
-                                     const EdgeChooseStrategy &strategy,
                                      const bool &resetGraph) {
     // 初始化游走节点ID序列
     std::vector<std::string> walkingSequence;
@@ -241,7 +240,7 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
         if (walkLengthRatio >= 0) {
             // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
             // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
-            walkingLength = currentNode->getLinkedNodeMapList().at(stepDefine[1]).size() * walkLengthRatio;
+            walkingLength = currentNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
         } else {
             // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
             walkingLength = 0 - walkLengthRatio;
@@ -275,8 +274,8 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                     // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
                     if (auxiliaryEdge.contains(currentNode->getType())) {
                         LOG(INFO) << "访问辅助边";
-                        auto auxiliaryNode = currentNode->getNextLinkedNode(strategy, auxiliaryEdge.at(
-                                currentNode->getType()));
+                        Node *auxiliaryNode;
+                        currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
                         if (auxiliaryNode != nullptr) {
                             // 存在辅助点则访问
                             auxiliaryNode->visit();
@@ -285,7 +284,7 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                                       << auxiliaryNode->getID();
                             // 从辅助点返回
                             // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                            currentNode = auxiliaryNode->getNextLinkedNode(strategy, currentNode->getType());
+                            auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
                             if (currentNode != nullptr) {
                                 currentNode->visit();
                                 walkingSequence.push_back(currentNode->getTypeID());
@@ -304,10 +303,10 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                     // 判断当前是否完成一步
                     if (j < stepDefine.size() - 1) {
                         // 尚未完成一步继续游走至步长定义中的下一步
-                        currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[j + 1]);
+                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[j + 1]);
                     } else {
                         // 已完成一步游走至下一步的开始点
-                        currentNode = currentNode->getNextLinkedNode(strategy, stepDefine[0]);
+                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
                         LOG(INFO) << "完成一步！前进至下一步的开始节点";
                     }
 
@@ -344,9 +343,8 @@ std::vector<std::string> Graph::walk(const Node &beginNode,
                                      const std::map<std::string, std::string> &auxiliaryEdge,
                                      const float &walkLengthRatio,
                                      const int &totalStepCount,
-                                     const EdgeChooseStrategy &strategy,
                                      const bool &resetGraph) {
-    return this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, strategy, resetGraph);
+    return this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, resetGraph);
 }
 
 void Graph::reset() {
@@ -429,6 +427,34 @@ bool Graph::isLinked(const std::string &aNodeType, const std::string &aNodeID, c
     }
 
     return result;
+}
+
+void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) {
+    for (auto i = 0; i < excludeNodeTypeIDList.size(); ++i) {
+        if (this->nodeList.contains(excludeNodeTypeIDList[i])) {
+            this->nodeList.at(excludeNodeTypeIDList[i])->exclude();
+        }
+    }
+    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        iter->second->flushLinkedNodes();
+    }
+}
+
+void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) {
+    for (auto i = 0; i < includeNodeTypeIDList.size(); ++i) {
+        if (this->nodeList.contains(includeNodeTypeIDList[i])) {
+            this->nodeList.at(includeNodeTypeIDList[i])->include();
+        }
+    }
+    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        iter->second->flushLinkedNodes();
+    }
+}
+
+void Graph::flush() {
+    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        iter->second->flushLinkedNodes();
+    }
 }
 
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,

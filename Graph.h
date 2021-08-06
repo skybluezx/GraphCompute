@@ -84,7 +84,6 @@ public:
                                   const std::map<std::string, std::string> &auxiliaryEdge,
                                   const float &walkLengthRatio,
                                   const int &totalStepCount,
-                                  const EdgeChooseStrategy &strategy,
                                   const bool &resetGraph);
     // 游走方法的多态
     // 传入开始点对象
@@ -93,7 +92,6 @@ public:
                                   const std::map<std::string, std::string> &auxiliaryEdge,
                                   const float &walkLengthRatio,
                                   const int &totalStepCount,
-                                  const EdgeChooseStrategy &strategy,
                                   const bool &resetGraph);
 
     /**
@@ -124,6 +122,20 @@ public:
      * @return
      */
     bool isLinked(const std::string &aNodeType, const std::string &aNodeID, const std::string &bNodeType, const std::string &bNodeID, std::vector<std::string> &traverseSequenceList);
+
+    /**
+     * 将图节点列表中的部分点排除
+     * @param excludeNodeTypeIDList
+     */
+    void excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList);
+
+    /**
+     * 将图节点列表中部分点包含
+     * @param includeNodeTypeIDList
+     */
+    void includeNodes(const std::vector<std::string> &includeNodeTypeIDList);
+
+    void flush();
 private:
     /**
      * 遍历的递归方法
