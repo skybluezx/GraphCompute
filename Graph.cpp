@@ -18,7 +18,7 @@
 
 Graph::Graph() = default;
 
-Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdgeCount) {
+Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount) : resultType(resultType) {
     std::filesystem::path path(graphDefineFileDirectoryPath);
     // 判断图定义文件的路径是否存在
     if (!std::filesystem::exists(path)) {
@@ -121,6 +121,15 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdg
             }
         }
     }
+#ifndef ONLY_VISITED_NODE_RESULT
+    if (this->resultType == "visited_count") {
+        this->visitedNodeList.reserve(this->nodeList.size());
+    } else {
+        this->walkingSequence.reserve(this->nodeList.size());
+    }
+#else
+    this->visitedNodeList.reserve(this->nodeList.size());
+#endif
 }
 
 Graph::~Graph() {
@@ -159,6 +168,14 @@ const std::map<std::string, unsigned> &Graph::getNodeTypeCountList() const {
     return this->nodeTypeCountList;
 }
 
+const std::vector<std::string> &Graph::getWalkingSequence() const {
+    return this->walkingSequence;
+}
+
+const std::unordered_map<std::string, Node*> &Graph::getVisitedNodeList() const {
+    return this->visitedNodeList;
+}
+
 std::vector<std::string> Graph::traverse(const std::string &beginNodeType, const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const {
     // 初始化遍历序列的ID列表
     // 序列为节点按遍历前后顺序形成ID列表
@@ -184,20 +201,19 @@ std::vector<std::string> Graph::traverse(const Node &beginNode, const WalkingDir
     return this->traverse(beginNode.getType(), beginNode.getID(), type, strategy);
 }
 
-std::vector<std::string> Graph::walk(const std::string &beginNodeType,
-                                     const std::string &beginNodeID,
-                                     const std::vector<std::string> &stepDefine,
-                                     const std::map<std::string, std::string> &auxiliaryEdge,
-                                     const float &walkLengthRatio,
-                                     const int &totalStepCount,
-                                     const bool &resetGraph) {
-    // 初始化游走节点ID序列
-    std::vector<std::string> walkingSequence;
+void Graph::walk(const std::string &beginNodeType,
+                 const std::string &beginNodeID,
+                 const std::vector<std::string> &stepDefine,
+                 const std::map<std::string, std::string> &auxiliaryEdge,
+                 const float &walkLengthRatio,
+                 const int &totalStepCount) {
+    // 清空游走结果列表
+    this->clearResultList();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
         LOG(ERROR) << "开始点不存在！";
-        return walkingSequence;
+        return;
     }
 
     // 获取开始点ID对应的点指针
@@ -208,17 +224,12 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
         if (beginNode->getType() != stepDefine[0]) {
             // 开始点类型不匹配游走步类型定义
             LOG(ERROR) << "开始点类型不匹配游走步类型定义！";
-            return walkingSequence;
+            return;
         }
     } else {
         // 游走步未定义
         LOG(ERROR) << "游走步未定义！";
-        return walkingSequence;
-    }
-
-    // 判断是否需要重置图中全部节点的状态信息
-    if (resetGraph) {
-        this->reset();
+        return;
     }
 
     // 定义开始点指针
@@ -228,27 +239,32 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
     // 定义当前游走的步长
     int walkingLength;
 
+    // 计算当前步游走长度
+    // Todo
+    // 步长的计算需要更多试验和思考！！
+    if (walkLengthRatio >= 0) {
+        // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
+        // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
+        walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
+    } else {
+        // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
+        walkingLength = 0 - walkLengthRatio;
+    }
+
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
-        LOG(INFO) << "新游走！当前步数：" << currentStepCount << "/" << totalStepCount;
+
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[新游走] 当前总步数/设置总步数：" << currentStepCount << "/" << totalStepCount;
+#endif
         // 访问开始点
         currentNode = beginNode;
 
-        // 计算当前步游走长度
-        // Todo
-        // 步长的计算需要更多试验和思考！！
-        if (walkLengthRatio >= 0) {
-            // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
-            // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
-            walkingLength = currentNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
-        } else {
-            // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
-            walkingLength = 0 - walkLengthRatio;
-        }
-
         // 遍历步长
         for (int i = 0; i < walkingLength; ++i) {
-            LOG(INFO) << "向前一步！当前游走的总步数：" << i + 1 << "/" << walkingLength;
+#ifdef INFO_LOG_OUTPUT
+            LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << i + 1 << "/" << walkingLength;
+#endif
 
             // 遍历步的组成
             // 从开始点开始遍历
@@ -258,46 +274,48 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                 if (currentNode != nullptr) {
                     // 访问当前步的开始点
                     currentNode->visit();
-                    walkingSequence.push_back(currentNode->getTypeID());
-                    // 输出日志
-                    if (j == 0) {
-                        // 每一步的开始点
-                        LOG(INFO) << "访问当前步的开始点:" << stepDefine[0] << ":" << currentNode->getID();
-                    } else {
-                        // 每一步的非开始点
-                        LOG(INFO) << "访问下一点：" << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
-                    }
+                    this->insertResultList(currentNode);
+#ifdef INFO_LOG_OUTPUT
+                    LOG(INFO) << "[访问当前点] " << stepDefine[j] << ":" << currentNode->getID();
+#endif
 
                     // 访问辅助边
                     // Todo
                     // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
                     // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
                     if (auxiliaryEdge.contains(currentNode->getType())) {
-                        LOG(INFO) << "访问辅助边";
                         Node *auxiliaryNode;
                         currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
                         if (auxiliaryNode != nullptr) {
                             // 存在辅助点则访问
                             auxiliaryNode->visit();
-                            walkingSequence.push_back(auxiliaryNode->getTypeID());
-                            LOG(INFO) << "访问辅助点：" << auxiliaryNode->getType() << ":" << "节点ID："
-                                      << auxiliaryNode->getID();
+                            this->insertResultList(auxiliaryNode);
+#ifdef INFO_LOG_OUTPUT
+                            LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
+#endif
                             // 从辅助点返回
                             // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                             auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
                             if (currentNode != nullptr) {
                                 currentNode->visit();
-                                walkingSequence.push_back(currentNode->getTypeID());
-                                LOG(INFO) << "辅助点返回：" << currentNode->getType() << ":" << "节点ID："
-                                          << currentNode->getID();
+                                this->insertResultList(currentNode);
+#ifdef INFO_LOG_OUTPUT
+                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+#endif
                             } else {
+#ifdef INFO_LOG_OUTPUT
                                 LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+#endif
                             }
                         } else {
+#ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "当前点无辅助边！";
+#endif
                         }
                     } else {
+#ifdef INFO_LOG_OUTPUT
                         LOG(INFO) << "当前种类的点不存在辅助边！";
+#endif
                     }
 
                     // 判断当前是否完成一步
@@ -307,7 +325,9 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                     } else {
                         // 已完成一步游走至下一步的开始点
                         currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
-                        LOG(INFO) << "完成一步！前进至下一步的开始节点";
+#ifdef INFO_LOG_OUTPUT
+                        LOG(INFO) << "[完成一步] 前进至下一步的开始节点";
+#endif
                     }
 
                     // 步长定义的索引增1
@@ -318,7 +338,9 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
                     // ToDo
                     // 重启策略
                     // 当前游走到的点已经没有步长定义中指定类型的连接点
-                    LOG(INFO) << "访问失败！不存在步长定义中指定类型的当前点！";
+#ifdef INFO_LOG_OUTPUT
+                    LOG(INFO) << "[访问失败] 不存在步长定义中指定类型的当前点！";
+#endif
                     break;
                 }
             }
@@ -327,6 +349,9 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
             // 重启策略
             // 当前游走到的点已经没有步长定义中指定类型的连接点
             if (currentNode == nullptr) {
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "[本次迭代已提前结束] 没有进一步开始节点供游走！";
+#endif
                 break;
             }
         }
@@ -334,17 +359,14 @@ std::vector<std::string> Graph::walk(const std::string &beginNodeType,
         // 刷新当前步数
         currentStepCount += walkingLength;
     }
-
-    return walkingSequence;
 }
 
-std::vector<std::string> Graph::walk(const Node &beginNode,
-                                     const std::vector<std::string> &stepDefine,
-                                     const std::map<std::string, std::string> &auxiliaryEdge,
-                                     const float &walkLengthRatio,
-                                     const int &totalStepCount,
-                                     const bool &resetGraph) {
-    return this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount, resetGraph);
+void Graph::walk(const Node &beginNode,
+                 const std::vector<std::string> &stepDefine,
+                 const std::map<std::string, std::string> &auxiliaryEdge,
+                 const float &walkLengthRatio,
+                 const int &totalStepCount) {
+    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount);
 }
 
 void Graph::reset() {
@@ -354,39 +376,95 @@ void Graph::reset() {
     }
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
-    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-    std::map<std::string, int> nodeIDList;
-    for (auto i = 0; i < walkingSequence.size(); ++i) {
-        if (this->nodeList.contains(walkingSequence[i])) {
-            if (!nodeIDList.contains(walkingSequence[i])) {
-                nodeIDList[walkingSequence[i]] = 1;
-                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
-                        walkingSequence[i])->getVisitedCount()));
-            }
-        }
-    }
-    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
+//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+//    std::map<std::string, int> nodeIDList;
+//    for (auto i = 0; i < walkingSequence.size(); ++i) {
+//        if (this->nodeList.contains(walkingSequence[i])) {
+//            if (!nodeIDList.contains(walkingSequence[i])) {
+//                nodeIDList[walkingSequence[i]] = 1;
+//                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
+//                        walkingSequence[i])->getVisitedCount()));
+//            }
+//        }
+//    }
+//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+//
+//    return nodeVisitedCountList;
+//}
 
-    return nodeVisitedCountList;
-}
+//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const {
+//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+//    std::map<std::string, int> nodeIDList;
+//    for (auto i = 0; i < walkingSequence.size(); ++i) {
+//        if (this->nodeList.contains(walkingSequence[i])) {
+//            if (!nodeIDList.contains(walkingSequence[i])) {
+//                nodeIDList[walkingSequence[i]] = 1;
+//                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
+//                        walkingSequence[i])->getVisitedCount()));
+//            }
+//        }
+//    }
+//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+//
+//    return nodeVisitedCountList;
+//}
 
-std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
+//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
+//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+//    std::map<std::string, int> nodeTypeIDList;
+//    for (auto i = 0; i < walkingSequence.size(); ++i) {
+//        if (this->nodeList.contains(walkingSequence[i])) {
+//            if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
+//                if (!nodeTypeIDList.contains(walkingSequence[i])) {
+//                    nodeTypeIDList[walkingSequence[i]] = 1;
+//                    nodeVisitedCountList.emplace_back(
+//                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(),
+//                                                        this->nodeList.at(walkingSequence[i])->getVisitedCount()));
+//                }
+//            }
+//        }
+//    }
+//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+//
+//    return nodeVisitedCountList;
+//}
+
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-    std::map<std::string, int> nodeTypeIDList;
-    for (auto i = 0; i < walkingSequence.size(); ++i) {
-        if (this->nodeList.contains(walkingSequence[i])) {
-            if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
-                if (!nodeTypeIDList.contains(walkingSequence[i])) {
-                    nodeTypeIDList[walkingSequence[i]] = 1;
-                    nodeVisitedCountList.emplace_back(
-                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(),
-                                                        this->nodeList.at(walkingSequence[i])->getVisitedCount()));
+
+#ifndef ONLY_VISITED_NODE_RESULT
+    if (resultType == "walking_sequence") {
+        std::map<std::string, int> nodeTypeIDList;
+        for (auto i = 0; i < this->walkingSequence.size(); ++i) {
+            if (this->nodeList.contains(walkingSequence[i])) {
+                if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
+                    if (!nodeTypeIDList.contains(walkingSequence[i])) {
+                        nodeTypeIDList[walkingSequence[i]] = 1;
+                        nodeVisitedCountList.emplace_back(
+                                std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(),
+                                                            this->nodeList.at(walkingSequence[i])->getVisitedCount()));
+                    }
                 }
             }
         }
+        std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+    } else {
+        nodeVisitedCountList.reserve(this->visitedNodeList.size());
+        for (auto iter = this->visitedNodeList.begin(); iter != this->visitedNodeList.end(); ++iter) {
+            if (iter->second->getType() == nodeType) {
+                nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second->getVisitedCount()));
+            }
+        }
+        std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+    }
+#else
+    nodeVisitedCountList.reserve(this->visitedNodeList.size());
+    for (auto iter = this->visitedNodeList.begin(); iter != this->visitedNodeList.end(); ++iter) {
+        nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second->getVisitedCount()));
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+#endif
 
     return nodeVisitedCountList;
 }
@@ -440,6 +518,14 @@ void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) 
     }
 }
 
+void Graph::excludeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList) {
+    for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
+        if (this->nodeList.contains(iter->first)) {
+            this->nodeList.at(iter->first)->excludeEdge(iter->second);
+        }
+    }
+}
+
 void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) {
     for (auto i = 0; i < includeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(includeNodeTypeIDList[i])) {
@@ -451,10 +537,31 @@ void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) 
     }
 }
 
+void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList) {
+    for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
+        if (this->nodeList.contains(iter->first)) {
+            this->nodeList.at(iter->first)->includeEdge(iter->second);
+        }
+    }
+}
+
 void Graph::flush() {
+    LOG(INFO) << "刷新图！";
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
         iter->second->flushLinkedNodes();
     }
+}
+
+void Graph::clearResultList() {
+#ifndef ONLY_VISITED_NODE_RESULT
+    if (this->resultType == "walking_sequence") {
+        this->walkingSequence.clear();
+    } else {
+        this->visitedNodeList.clear();
+    }
+#else
+    this->visitedNodeList.clear();
+#endif
 }
 
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,
@@ -547,4 +654,16 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
 
 bool Graph::cmp(std::pair<std::string, int> a, std::pair<std::string, int> b) {
     return a.second > b.second;
+}
+
+void Graph::insertResultList(Node* &node) {
+#ifndef ONLY_VISITED_NODE_RESULT
+    if (this->resultType == "visited_count") {
+        this->visitedNodeList[node->getTypeID()] = node;
+    } else {
+        this->walkingSequence.push_back(node->getType());
+    }
+#else
+    this->visitedNodeList[node->getTypeID()] = node;
+#endif
 }

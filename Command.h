@@ -12,8 +12,8 @@
 class Command {
 public:
     static void execute(Graph &graph, const std::string &command, const std::string &resultDirectoryPath);
-
 private:
+
 };
 
 

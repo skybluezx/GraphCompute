@@ -47,7 +47,7 @@ public:
      * 返回该点邻接点列表
      * @return 点对象中邻接点列表的引用
      */
-    const std::vector<Node*> &getLinkedNodeList() const;
+    const std::vector<std::pair<Node*, bool>> &getLinkedNodeList() const;
 
     /**
      * 返回该点邻接点分类型列表
@@ -68,6 +68,12 @@ public:
      * 返回值为常量指针列表则不允许通过其他方式修改列表中的元素，否则列表中原指针指向的内存将存在泄漏风险
      */
     const std::vector<Node*> getNoVisitedLinkedNodeList() const;
+
+    /**
+     * 获奖点的基本信息
+     * @return
+     */
+    const std::string to_string() const;
 
     /**
      * 获取当前点全部边的连接信息
@@ -122,11 +128,15 @@ public:
      */
     void exclude();
 
+    bool excludeEdge(std::string endNodeTypeID);
+
     /**
      * 包含点
      * 将当前点的可访问状态置为true
      */
     void include();
+
+    bool includeEdge(std::string endNodeTypeID);
 
     /**
      * 根据原始链表刷新分类型链表
@@ -149,7 +159,7 @@ private:
     // 与当前点有边连接的链表
     // 由于该指针对应的内容均为Graph对象创建，由Graph对象负责维护
     // 所以在Node对象中不应该将其中的指针重指向其他点，否则将出现野指针
-    std::vector<Node *> linkedNodeList;
+    std::vector<std::pair<Node*, bool>> linkedNodeList;
     // 与当前点有边连接的类型链表
     // key为连接点的type
     // value为对应type对应的连接点对象的指针列表

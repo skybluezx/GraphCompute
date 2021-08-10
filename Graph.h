@@ -25,7 +25,7 @@ public:
      * 读取图定义文件所在的文件建立图
      * @param graphDefineFileDirectoryPath
      */
-    explicit Graph(const std::string &graphDefineFileDirectoryPath, const int &readEdgeCount = -1);
+    explicit Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType="walking_sequence", const int &readEdgeCount = -1);
 
     /**
      * 析构方法
@@ -53,7 +53,23 @@ public:
      */
     std::vector<std::string> getNodeTypeList() const;
 
+    /**
+     * 获取节点类型个数列表
+     * @return
+     */
     const std::map<std::string, unsigned> &getNodeTypeCountList() const;
+
+    /**
+     * 获取游走序列
+     * @return
+     */
+    const std::vector<std::string> &getWalkingSequence() const;
+
+    /**
+     * 获取访问次数列表
+     * @return
+     */
+    const std::unordered_map<std::string, Node*> &getVisitedNodeList() const;
 
     /**
      * 遍历方法
@@ -78,21 +94,19 @@ public:
      * @param strategy
      * @return
      */
-    std::vector<std::string> walk(const std::string &beginNodeType,
-                                  const std::string &beginNodeID,
-                                  const std::vector<std::string> &stepDefine,
-                                  const std::map<std::string, std::string> &auxiliaryEdge,
-                                  const float &walkLengthRatio,
-                                  const int &totalStepCount,
-                                  const bool &resetGraph);
+    void walk(const std::string &beginNodeType,
+              const std::string &beginNodeID,
+              const std::vector<std::string> &stepDefine,
+              const std::map<std::string, std::string> &auxiliaryEdge,
+              const float &walkLengthRatio,
+              const int &totalStepCount);
     // 游走方法的多态
     // 传入开始点对象
-    std::vector<std::string> walk(const Node &beginNode,
-                                  const std::vector<std::string> &stepDefine,
-                                  const std::map<std::string, std::string> &auxiliaryEdge,
-                                  const float &walkLengthRatio,
-                                  const int &totalStepCount,
-                                  const bool &resetGraph);
+    void walk(const Node &beginNode,
+              const std::vector<std::string> &stepDefine,
+              const std::map<std::string, std::string> &auxiliaryEdge,
+              const float &walkLengthRatio,
+              const int &totalStepCount);
 
     /**
      * 图重置方法
@@ -105,14 +119,18 @@ public:
      * 返回节点ID和访问次数所组成Pair的列表
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
+//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
 
     /**
      * 获取访问列表中指定类型全部节点按照访问次数从大到小顺序的列表
      * 返回节点ID和访问次数所组成Pair的列表
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const;
+//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const;
+
+//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
+
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
 
     /**
      * 判断两点在图中是否相连
@@ -130,12 +148,35 @@ public:
     void excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList);
 
     /**
+     *
+     * @param beginAndEndNodeTypeIDList
+     */
+    void excludeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList);
+
+    /**
      * 将图节点列表中部分点包含
      * @param includeNodeTypeIDList
      */
     void includeNodes(const std::vector<std::string> &includeNodeTypeIDList);
 
+    /**
+     *
+     * @param beginAndEndNodeTypeIDList
+     */
+    void includeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList);
+
+    /**
+     * 刷新图中节点的分类型链表的状态
+     * 若不刷新则图中节点的分类型链表将无法提供随机访问能力
+     */
     void flush();
+
+    /**
+     * 清空图操作结果列表
+     * 根据图配置文件中的参数确定具体需要清空的列表
+     * 该方法也受Util类声明中相关宏定义的控制
+     */
+    void clearResultList();
 private:
     /**
      * 遍历的递归方法
@@ -159,6 +200,8 @@ private:
      */
     static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
 
+    void insertResultList(Node* &node);
+
     /**
      * 图中全部点的字典
      * key为点的ID
@@ -166,12 +209,22 @@ private:
      */
     std::map<const std::string, Node *const> nodeList;
 
+//    std::map<const std::string, Node *const> typeNodeList;
+
     /**
      * 图中点的类型字典
      * Key为类型
      * Value为该类型对应的点个数
      */
     std::map<std::string, unsigned> nodeTypeCountList;
+
+    std::string resultType;
+
+    std::unordered_map<std::string, Node*> visitedNodeList;
+
+    std::vector<std::string> walkingSequence;
+
+    std::unordered_map<std::string, int> firstWalkingSequenceWithVisitedCount;
 };
 
 

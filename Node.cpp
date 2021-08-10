@@ -29,7 +29,7 @@ const std::string Node::getTypeID() const {
     return this->type + ":" + this->id;
 }
 
-const std::vector<Node *> &Node::getLinkedNodeList() const {
+const std::vector<std::pair<Node *, bool>> &Node::getLinkedNodeList() const {
     return this->linkedNodeList;
 }
 
@@ -41,7 +41,7 @@ void Node::addEdge(Node *const &node) {
     // 当前框架不支持多重边
     // 判断待添加边对应的连接点是否已存在
     if (node != nullptr) {
-        this->linkedNodeList.push_back(node);
+        this->linkedNodeList.push_back(std::pair(node, true));
 
         if (!this->linkedNodeMapList.contains(node->type)) {
             this->linkedNodeMapList[node->type] = std::pair(std::vector<Node*>(), std::uniform_int_distribution<unsigned>());
@@ -59,20 +59,37 @@ const std::vector<Node*> Node::getNoVisitedLinkedNodeList() const {
     // 遍历当前点的邻接列表
     for (auto nodeIter = this->linkedNodeList.begin(); nodeIter != this->linkedNodeList.end(); ++nodeIter) {
         // 判断当前邻接点是否已被访问
-        if (!(*nodeIter)->isVisited()) {
+        if (!nodeIter->first->isVisited()) {
             // 未访问则加入列表
-            result.push_back(*nodeIter);
+            result.push_back(nodeIter->first);
         }
     }
 
     return result;
 }
 
+const std::string Node::to_string() const {
+    std::string info = "[访问次数：" + std::to_string(this->getVisitedCount()) + "] " + this->type + ":" + this->id + '\n';
+
+    if (this->canVisit()) {
+        info = "[可访问]" + info;
+    } else {
+        info = "[不可访问]" + info;
+    }
+
+    return info;
+}
+
 const std::string Node::getLinkedInfo() const {
-    std::string info = this->type + ":" + this->id + '\n';
+    std::string info = this->to_string();
+
     for (auto nodeIter = this->linkedNodeList.begin(); nodeIter != this->linkedNodeList.end(); ++nodeIter) {
-        info += " -> ";
-        info += (*nodeIter)->type + ":" + (*nodeIter)->id + "\n";
+        if (nodeIter->second) {
+            info += " -> ";
+        } else {
+            info += " *> ";
+        }
+        info += nodeIter->first->to_string();
     }
 
     return info;
@@ -101,16 +118,29 @@ int Node::getVisitedCount() const {
 bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::string &type) {
     // 链表选择为O(1)
     // 边选择策略为O(n)，其中n为4（因为目前有四种边选择策略）
-    return Node::getNextLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, strategy, this->randomEngine, this->linkedNodeMapList.at(type).second);
+    nextNode = nullptr;
+    if (this->linkedNodeMapList.contains(type)) {
+        return Node::getNextLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, strategy, this->randomEngine,
+                                       this->linkedNodeMapList.at(type).second);
+    } else {
+        return false;
+    }
 }
 
 bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type) {
-    return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, this->randomEngine, this->linkedNodeMapList.at(type).second);
+    nextNode = nullptr;
+    if (this->linkedNodeMapList.contains(type)) {
+        return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, this->randomEngine,
+                                             this->linkedNodeMapList.at(type).second);
+    } else {
+        return false;
+    }
 }
 
 bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::vector<std::string> &typeList) {
     // 链表合并选择为O(n)，n为设置类型个数，设计在内存中创建合并后链表，也会带来耗时
     // 边选择策略为O(m)，其中m为4（因为目前有四种边选择策略）
+    nextNode = nullptr;
     std::vector<Node*> nodeList;
     for (auto i = 0; i < typeList.size(); ++i) {
         nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(type).first.begin(), this->linkedNodeMapList.at(type).first.end());
@@ -129,8 +159,32 @@ void Node::exclude() {
     this->canVisitFlag = false;
 }
 
+bool Node::excludeEdge(std::string endNodeTypeID) {
+    for (auto iter = this->linkedNodeList.begin(); iter != this->linkedNodeList.end(); ++iter) {
+        if (iter->first->getTypeID() == endNodeTypeID) {
+            if (iter->second) {
+                iter->second = false;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void Node::include() {
     this->canVisitFlag = true;
+}
+
+bool Node::includeEdge(std::string endNodeTypeID) {
+    for (auto iter = this->linkedNodeList.begin(); iter != this->linkedNodeList.end(); ++iter) {
+        if (iter->first->getTypeID() == endNodeTypeID) {
+            if (!iter->second) {
+                iter->second = true;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void Node::flushLinkedNodes() {
@@ -138,23 +192,26 @@ void Node::flushLinkedNodes() {
     this->linkedNodeMapList.clear();
     // 遍历链表
     for (auto i = 0; i < this->linkedNodeList.size(); ++i) {
+        if (!this->linkedNodeList[i].second) {
+            continue;
+        }
         // 判断当前连接节点是否可访问
-        if (this->linkedNodeList[i]->canVisit()) {
+        if (this->linkedNodeList[i].first->canVisit()) {
             // 当前节点可访问则将其加入分类型链表
 
             // 判断分类型链表中当前节点对应类型的链表是否存在
-            if (!this->linkedNodeMapList.contains(this->linkedNodeList[i]->getType())) {
+            if (!this->linkedNodeMapList.contains(this->linkedNodeList[i].first->getType())) {
                 // 不存在则创建空链表
                 // 同时放入默认初始化的离散均分布器
-                this->linkedNodeMapList[this->linkedNodeList[i]->getType()] = std::pair(std::vector<Node *>(), std::uniform_int_distribution<unsigned>());
+                this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::pair(std::vector<Node *>(), std::uniform_int_distribution<unsigned>());
             }
             // 将当前节点加入分类型链表
-            this->linkedNodeMapList[this->linkedNodeList[i]->getType()].first.push_back(this->linkedNodeList[i]);
+            this->linkedNodeMapList[this->linkedNodeList[i].first->getType()].first.push_back(this->linkedNodeList[i].first);
         }
     }
     // 按照费类型链表长度生成最终离散均匀分布并替代默认初始化的离散均匀分布
     for (auto iter = this->linkedNodeMapList.begin(); iter != this->linkedNodeMapList.end(); ++iter) {
-        iter->second.second = std::uniform_int_distribution<unsigned>(0, iter->second.first.size());
+        iter->second.second = std::uniform_int_distribution<unsigned>(0, iter->second.first.size() - 1);
     }
 }
 
@@ -184,8 +241,6 @@ bool Node::getNextLinkedNode(const std::vector<Node *> &nodeList,
 }
 
 bool Node::getNextFirstLinkedNode(const std::vector<Node *> &nodeList, Node *&nextNode) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     if (nodeList.size() == 0) {
         return false;
     } else {
@@ -196,8 +251,6 @@ bool Node::getNextFirstLinkedNode(const std::vector<Node *> &nodeList, Node *&ne
 }
 
 bool Node::getNextFirstNoVisitedLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     // 选择邻接列表中第一条未访问过的边
     for (auto i = 0; i < nodeList.size(); ++i) {
         if (!nodeList[i]->isVisited()) {
@@ -209,8 +262,6 @@ bool Node::getNextFirstNoVisitedLinkedNode(const std::vector<Node *> &nodeList, 
 }
 
 bool Node::getNextLastLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     if (nodeList.empty()) {
         return false;
     } else {
@@ -220,8 +271,6 @@ bool Node::getNextLastLinkedNode(const std::vector<Node *> &nodeList, Node* &nex
 }
 
 bool Node::getNextLastNoVisitedLinkedNode(const std::vector<Node *> &nodeList, Node *&nextNode) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     // 选择邻接列表中最后一条未访问过的边
     for (auto i = nodeList.size() - 1; i >= 0; --i) {
         if (!nodeList[i]->isVisited()) {
@@ -236,24 +285,18 @@ bool Node::getNextRandomLinkedNode(const std::vector<Node *> &nodeList,
                                    Node* &nextNode,
                                    std::default_random_engine &randomEngine,
                                    std::uniform_int_distribution<unsigned> &randomDistribution) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     // 判断当前节点链表是否为空
-    if (nodeList.size() == 0) {
-        // 为空则直接返回false
-        return false;
-    } else {
+    if (!nodeList.empty()) {
         // 否则随机选择邻接列表中的一条边
         nextNode = nodeList[randomDistribution(randomEngine)];
         return true;
     }
+    return false;
 }
 
 bool Node::getNextRandomNoVisitedLinkedNode(const std::vector<Node *> &nodeList,
                                             Node *&nextNode,
                                             std::default_random_engine &randomEngine) {
-    // 初始化下一节点指针为空指针
-    nextNode = nullptr;
     // 初始化当前点全部未访问节点列表
     std::vector<Node *> noVisitedLinkedNodeList;
     // 遍历当前点的邻接表

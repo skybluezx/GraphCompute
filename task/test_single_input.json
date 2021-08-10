@@ -11,9 +11,7 @@
 		"Question": "Courseware"
 	},
 	"walkLengthRatio": 1.0,
-	"totalStepCount": 10000,
-	"strategy": "RANDOM",
-	"resetGraph": true,
+	"totalStepCount": 100000,
 
 	"targetNodeType": "Question",
 	"visitedCountTopN": 100

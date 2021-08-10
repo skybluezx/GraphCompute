@@ -33,6 +33,13 @@ int main(int argc, char* argv[]) {
     std::string logDirectory;
     Util::getConfig("Path", "log_directory", logDirectory);
     FLAGS_log_dir = logDirectory;
+    std::string logLevel;
+    Util::getConfig("LOG", "log_level", logLevel);
+    if (logLevel == "INFO") {
+        FLAGS_minloglevel = google::INFO;
+    } else {
+        FLAGS_minloglevel = google::ERROR;
+    }
 
     // 读取计算结果输出路径
     std::string resultDirectoryPath;
@@ -66,8 +73,11 @@ int main(int argc, char* argv[]) {
     // 读取配置文件中设置的边读取个数
     int readEdgeCount;
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
+    std::string resultType;
+    Util::getConfig("Input", "result_type", resultType);
     // 建立图
-    Graph graph = Graph(graphDefineDirectory, readEdgeCount);
+    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount);
+    graph.flush();
     // 输出图的概要
     auto nodeTypeCountList = graph.getNodeTypeCountList();
     for (auto iter = nodeTypeCountList.begin(); iter != nodeTypeCountList.end(); ++iter) {
@@ -129,6 +139,8 @@ int main(int argc, char* argv[]) {
     boost::interprocess::shared_memory_object::remove("shm");
     boost::interprocess::named_mutex::remove("mtx");
     boost::interprocess::named_condition::remove("cnd");
+
+    google::ShutdownGoogleLogging();
 
     return 0;
 }
