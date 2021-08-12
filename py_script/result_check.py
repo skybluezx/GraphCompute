@@ -2,11 +2,9 @@ import os
 import json
 
 
-def kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_file_path):
+def kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_file_path, recall_top_n):
     # 读取全部知识点召回
     kp_question_recall_result_list = dict()
-    # 设置召回题目的TopN
-    recall_top_n = 100
     # 遍历全部知识点的题目召回结果
     for file in os.listdir(kp_question_recall_result_directory):
         # 检查文件正确性
@@ -89,4 +87,7 @@ if __name__ == '__main__':
     # 测试集中知识点-课件-题目的映射文件路径
     test_kp_courseware_question_file_path = '/Users/zhaixiao/workplace/c_cpp/GraphCompute/test_data/kp_courseware_question.json'
 
-    kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_file_path)
+    # 设置召回题目的TopN
+    recall_top_n_list = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    for n in recall_top_n_list:
+        kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_file_path, n)
