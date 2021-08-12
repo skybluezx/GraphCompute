@@ -117,11 +117,13 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             }
                         }
                     }
+                    LOG(INFO) << "文件读取完成！";
                 }
                 // 关闭文件
                 graphDefineFile.close();
             }
         }
+        LOG(INFO) << "图加载完毕！";
     }
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {

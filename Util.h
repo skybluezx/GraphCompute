@@ -13,7 +13,7 @@
 // 是否在编译时只记录图操作过程的节点
 // 注释该宏定义将根据参数配置在访问过的节点和游走序列两种记录方式中进行选择
 // 生效该宏定义将在编译阶段直接采用访问过的节点作为游走结果用于提升运行速度
-#define ONLY_VISITED_NODE_RESULT
+//#define ONLY_VISITED_NODE_RESULT
 
 #include <vector>
 #include <string>

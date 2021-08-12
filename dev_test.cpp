@@ -62,8 +62,8 @@ int main(int argc, char* argv[]) {
     }
     google::FlushLogFiles(google::INFO);
 
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test_exclude_node_or_edge_from_file.json";
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/main_exclude_test.json";
+//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/exp_graph_prune.json";
+//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/main_exclude_test_courseware.json";
     std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test_single_input.json";
     std::ifstream jsonFile(json_file_path);
     std::stringstream buffer;
