@@ -108,7 +108,9 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             endNode->addEdge(beginNode);
 
                             currentEdgeCount++;
+#ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
+#endif
 
                             if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
                                 break;
@@ -209,6 +211,8 @@ void Graph::walk(const std::string &beginNodeType,
                  const int &totalStepCount) {
     // 清空游走结果列表
     this->clearResultList();
+
+    this->reset();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
