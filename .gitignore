@@ -12,6 +12,7 @@ build/task/
 build/graph_define/
 build/result/
 build/test_data/
+build/log/
 
 # Prerequisites
 *.d
