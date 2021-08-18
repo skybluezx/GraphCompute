@@ -2,6 +2,14 @@
 .idea/
 cmake-build-debug/
 
+build/CMakeCache.txt
+build/CMakeFiles/
+build/Makefile
+build/cmake_install.cmake
+build/compile.sh
+build/config/
+build/task/
+
 # Prerequisites
 *.d
 
