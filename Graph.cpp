@@ -572,90 +572,90 @@ void Graph::clearResultList() {
 
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,
                      const EdgeChooseStrategy &strategy, const std::string &endNodeTypeID) {
-    std::default_random_engine randomEngine(std::chrono::system_clock::now().time_since_epoch().count());
+    //std::default_random_engine randomEngine(std::chrono::system_clock::now().time_since_epoch().count());
 
-    if (direction == WalkingDirection::DEEP) {
-        std::stack<Node *const> depthStack;
+    //if (direction == WalkingDirection::DEEP) {
+    //    std::stack<Node *const> depthStack;
 
-        depthStack.push(beginNode);
-        while (!depthStack.empty()) {
-            Node *const n = depthStack.top();
-            depthStack.pop();
+    //    depthStack.push(beginNode);
+    //    while (!depthStack.empty()) {
+    //        Node *const n = depthStack.top();
+    //        depthStack.pop();
 
-            // 访问该点
-            n->visit();
-            // 将该点ID加入遍历去序列
-            traverseSequenceList.push_back(n->getTypeID());
+    //        // 访问该点
+    //        n->visit();
+    //        // 将该点ID加入遍历去序列
+    //        traverseSequenceList.push_back(n->getTypeID());
 
-            // 若配置了遍历重点则判断是否到达终点
-            // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
-            if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
-                break;
-            }
+    //        // 若配置了遍历重点则判断是否到达终点
+    //        // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
+    //        if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
+    //            break;
+    //        }
 
-            // 获得该点全部未访问链接节点
-            const std::vector<Node*> &linkedNodeList = n->getNoVisitedLinkedNodeList();
-            if (!linkedNodeList.empty()) {
-                if (strategy == FIRST_NO_VISIT) {
-                    for (auto iter = linkedNodeList.crbegin(); iter != linkedNodeList.crend(); ++iter) {
-                        depthStack.push(*iter);
-                    }
-                } else if (strategy == LAST_NO_VISIT) {
-                    for (auto iter = linkedNodeList.cbegin(); iter != linkedNodeList.cend(); ++iter) {
-                        depthStack.push(*iter);
-                    }
-                } else {
-                    std::vector<Node*> shuffleLinkedNodeList = linkedNodeList;
-                    std::shuffle(shuffleLinkedNodeList.begin(), shuffleLinkedNodeList.end(), randomEngine);
-                    for (auto iter = shuffleLinkedNodeList.cbegin(); iter != shuffleLinkedNodeList.cend(); ++iter) {
-                        depthStack.push(*iter);
-                    }
-                }
-            }
-        }
-    } else {
-        // 广度优先遍历
+    //        // 获得该点全部未访问链接节点
+    //        const std::vector<Node*> &linkedNodeList = n->getNoVisitedLinkedNodeList();
+    //        if (!linkedNodeList.empty()) {
+    //            if (strategy == FIRST_NO_VISIT) {
+    //                for (auto iter = linkedNodeList.crbegin(); iter != linkedNodeList.crend(); ++iter) {
+    //                    depthStack.push(*iter);
+    //                }
+    //            } else if (strategy == LAST_NO_VISIT) {
+    //                for (auto iter = linkedNodeList.cbegin(); iter != linkedNodeList.cend(); ++iter) {
+    //                    depthStack.push(*iter);
+    //                }
+    //            } else {
+    //                std::vector<Node*> shuffleLinkedNodeList = linkedNodeList;
+    //                std::shuffle(shuffleLinkedNodeList.begin(), shuffleLinkedNodeList.end(), randomEngine);
+    //                for (auto iter = shuffleLinkedNodeList.cbegin(); iter != shuffleLinkedNodeList.cend(); ++iter) {
+    //                    depthStack.push(*iter);
+    //                }
+    //            }
+    //        }
+    //    }
+    //} else {
+    //    // 广度优先遍历
 
-        // 初始化度列
-        std::queue<Node *const> levelQueue;
-        // 将当前节点放入队列
-        levelQueue.push(beginNode);
-        // 广度遍历全部节点
-        while (!levelQueue.empty()) {
-            // 从队列中取出当前节点
-            Node *const n = levelQueue.front();
-            levelQueue.pop();
+    //    // 初始化度列
+    //    std::queue<Node *const> levelQueue;
+    //    // 将当前节点放入队列
+    //    levelQueue.push(beginNode);
+    //    // 广度遍历全部节点
+    //    while (!levelQueue.empty()) {
+    //        // 从队列中取出当前节点
+    //        Node *const n = levelQueue.front();
+    //        levelQueue.pop();
 
-            // 访问该点
-            n->visit();
-            // 将该点ID加入遍历去序列
-            traverseSequenceList.push_back(n->getTypeID());
+    //        // 访问该点
+    //        n->visit();
+    //        // 将该点ID加入遍历去序列
+    //        traverseSequenceList.push_back(n->getTypeID());
 
-            // 若配置了遍历重点则判断是否到达终点
-            // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
-            if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
-                break;
-            }
+    //        // 若配置了遍历重点则判断是否到达终点
+    //        // 到达则退出遍历，这是遍历ID序列的最后一个元素就是终点ID
+    //        if (!endNodeTypeID.empty() && n->getTypeID() == endNodeTypeID) {
+    //            break;
+    //        }
 
-            // 获得该点全部未访问链接节点
-            const std::vector<Node *> &linkedNodeList = n->getNoVisitedLinkedNodeList();
-            if (strategy == FIRST_NO_VISIT) {
-                for (auto iter = linkedNodeList.cbegin(); iter != linkedNodeList.cend(); ++iter) {
-                    levelQueue.push(*iter);
-                }
-            } else if (strategy == LAST_NO_VISIT) {
-                for (auto iter = linkedNodeList.crbegin(); iter != linkedNodeList.crend(); ++iter) {
-                    levelQueue.push(*iter);
-                }
-            } else {
-                std::vector<Node*> shuffleLinkedNodeList = linkedNodeList;
-                std::shuffle(shuffleLinkedNodeList.begin(), shuffleLinkedNodeList.end(), randomEngine);
-                for (auto iter = shuffleLinkedNodeList.cbegin(); iter != shuffleLinkedNodeList.cend(); ++iter) {
-                    levelQueue.push(*iter);
-                }
-            }
-        }
-    }
+    //        // 获得该点全部未访问链接节点
+    //        const std::vector<Node *> &linkedNodeList = n->getNoVisitedLinkedNodeList();
+    //        if (strategy == FIRST_NO_VISIT) {
+    //            for (auto iter = linkedNodeList.cbegin(); iter != linkedNodeList.cend(); ++iter) {
+    //                levelQueue.push(*iter);
+    //            }
+    //        } else if (strategy == LAST_NO_VISIT) {
+    //            for (auto iter = linkedNodeList.crbegin(); iter != linkedNodeList.crend(); ++iter) {
+    //                levelQueue.push(*iter);
+    //            }
+    //        } else {
+    //            std::vector<Node*> shuffleLinkedNodeList = linkedNodeList;
+    //            std::shuffle(shuffleLinkedNodeList.begin(), shuffleLinkedNodeList.end(), randomEngine);
+    //            for (auto iter = shuffleLinkedNodeList.cbegin(); iter != shuffleLinkedNodeList.cend(); ++iter) {
+    //                levelQueue.push(*iter);
+    //            }
+    //        }
+    //    }
+    //}
 }
 
 bool Graph::cmp(std::pair<std::string, int> a, std::pair<std::string, int> b) {
