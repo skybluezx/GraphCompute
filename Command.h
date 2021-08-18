@@ -9,9 +9,13 @@
 
 #include "Graph.h"
 
+#include "question_recall_define.h"
+
 class Command {
 public:
     static void execute(Graph &graph, const std::string &command, const std::string &resultDirectoryPath);
+
+    static Out questionRecall(In &request);
 private:
 
 };

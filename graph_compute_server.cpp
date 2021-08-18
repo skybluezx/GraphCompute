@@ -29,6 +29,11 @@ int main(int argc, char* argv[]) {
     // 设置配置文件路径
     Util::configFilePath = FLAGS_config_file_path;
 
+    // 读取服务端名称
+    // 用于隔离同一台机器上的多个服务（进程安全）
+    std::string serverName;
+    Util::getConfig("Main", "server_name", serverName);
+
     // 配置日志输出路径
     std::string logDirectory;
     Util::getConfig("Path", "log_directory", logDirectory);
@@ -45,22 +50,26 @@ int main(int argc, char* argv[]) {
     std::string resultDirectoryPath;
     Util::getConfig("Path", "result_directory", resultDirectoryPath);
 
+    std::string sharedMemoryObjectName = serverName + "shm";
+    std::string namedMutexName = serverName + "mtx";
+    std::string namedConditionName = serverName + "cnd";
+
     // 删除系统中可能存在的服务端需要用到的共享变量、互斥量和条件变量
     // 防止因之前服务端异常退出导致相关进程同步变量被锁定而本次无法启动
-    boost::interprocess::shared_memory_object::remove("shm");
-    boost::interprocess::named_mutex::remove("mtx");
-    boost::interprocess::named_condition::remove("cnd");
+    boost::interprocess::shared_memory_object::remove(sharedMemoryObjectName.c_str());
+    boost::interprocess::named_mutex::remove(namedMutexName.c_str());
+    boost::interprocess::named_condition::remove(namedConditionName.c_str());
 
     // 设置服务端和客户端通信和同步需要用到的共享变量、互斥量和条件变量
     boost::interprocess::managed_shared_memory managed_shm(
             boost::interprocess::open_or_create,
-            "shm",
+            sharedMemoryObjectName.c_str(),
             1024 * 1024 * 5);
     typedef boost::interprocess::allocator<char, boost::interprocess::managed_shared_memory::segment_manager> CharAllocator;
     typedef boost::interprocess::basic_string<char, std::char_traits<char>, CharAllocator> string;
     string *commandString = managed_shm.find_or_construct<string>("Command")("", managed_shm.get_segment_manager());
-    boost::interprocess::named_mutex named_mtx(boost::interprocess::open_or_create, "mtx");
-    boost::interprocess::named_condition named_cnd(boost::interprocess::open_or_create, "cnd");
+    boost::interprocess::named_mutex named_mtx(boost::interprocess::open_or_create, namedMutexName.c_str());
+    boost::interprocess::named_condition named_cnd(boost::interprocess::open_or_create, namedConditionName.c_str());
     boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(named_mtx);
 
     /**
@@ -136,9 +145,9 @@ int main(int argc, char* argv[]) {
     // 服务结束通知其他进程善后
     named_cnd.notify_all();
     // 删除全部共享变量、互斥量和条件变量
-    boost::interprocess::shared_memory_object::remove("shm");
-    boost::interprocess::named_mutex::remove("mtx");
-    boost::interprocess::named_condition::remove("cnd");
+    boost::interprocess::shared_memory_object::remove(sharedMemoryObjectName.c_str());
+    boost::interprocess::named_mutex::remove(namedMutexName.c_str());
+    boost::interprocess::named_condition::remove(namedConditionName.c_str());
 
     google::ShutdownGoogleLogging();
 

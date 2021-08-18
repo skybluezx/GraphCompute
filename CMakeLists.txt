@@ -37,6 +37,6 @@ add_executable(GraphComputeTest dev_test.cpp Util.cpp Util.h Graph.cpp Graph.h N
 target_link_libraries (GraphComputeTest glog::glog)
 target_link_libraries(GraphComputeTest ${Boost_LIBRARIES})
 
-#add_executable(QuestionRecall question_recall_test.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h question_recall_define.h)
-#target_link_libraries (QuestionRecall glog::glog)
-#target_link_libraries(QuestionRecall ${Boost_LIBRARIES})
+add_executable(QuestionRecall question_recall_test.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h question_recall_define.h)
+target_link_libraries (QuestionRecall glog::glog)
+target_link_libraries(QuestionRecall ${Boost_LIBRARIES})

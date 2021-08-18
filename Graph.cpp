@@ -5,11 +5,12 @@
 #include "Graph.h"
 
 #include <iostream>
-#include <filesystem>
 #include <stack>
 #include <queue>
 #include <random>
+#include <thread>
 #include <chrono>
+#include <cmath>
 #include "boost/filesystem.hpp"
 
 #include "type_defination.h"
@@ -19,6 +20,12 @@
 Graph::Graph() = default;
 
 Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount) : resultType(resultType) {
+    // 初始化随机引擎（目前用于游走过程中的重启策略）
+    this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+    // 初始化随机数分布（目前初始化为0到1之间的实数）
+    this->randomDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+
+    // 设置图定义文件的路径
     std::filesystem::path path(graphDefineFileDirectoryPath);
     // 判断图定义文件的路径是否存在
     if (!std::filesystem::exists(path)) {
@@ -26,6 +33,9 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
         LOG(ERROR) << "图定义目录不存在！";
     } else {
         // 路径存在
+
+        // 初始化当前已读取边数
+        int currentEdgeCount = 0;
         // 遍历图定义文件所在目录的全部图定义文件
         for (auto it = std::filesystem::recursive_directory_iterator(path); it != std::filesystem::recursive_directory_iterator(); ++it) {
             // 判断当前是否为图定义文件
@@ -42,17 +52,18 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
 
                 LOG(INFO) << "读取文件：" << filePath.filename();
 
+                // 打开文件
                 std::ifstream graphDefineFile(filePathString, std::ios::in);
                 // 判断图定义文件打开是否成功
                 if (!graphDefineFile.is_open()) {
                     // 打开失败则输出错误日志
                     LOG(ERROR) << "文件读取失败！";
                 } else {
-                    int currentEdgeCount = 0;
                     // 遍历图定义文件的全部行
                     // 每一行为一个边描述
                     std::string line;
                     while (std::getline(graphDefineFile, line)) {
+                        // 空行跳过
                         if (line.empty()) {
                             continue;
                         }
@@ -76,6 +87,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
+                                // 累加当前点对应类型的总节点数
                                 if (!this->nodeTypeCountList.contains(beginNode->getType())) {
                                     this->nodeTypeCountList[beginNode->getType()] = 0;
                                 }
@@ -94,6 +106,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
 
+                                // 累加当前点对应类型的总节点数
                                 if (!this->nodeTypeCountList.contains(endNode->getType())) {
                                     this->nodeTypeCountList[endNode->getType()] = 0;
                                 }
@@ -107,12 +120,15 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             beginNode->addEdge(endNode);
                             endNode->addEdge(beginNode);
 
+                            // 累加当前已读取总边数
                             currentEdgeCount++;
 #ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
 #endif
 
+                            // 判断是否已读取配置文件中配置的最大边数
                             if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
+                                // 若已读取最大边数退出不在读取
                                 break;
                             }
                         }
@@ -121,6 +137,12 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                 }
                 // 关闭文件
                 graphDefineFile.close();
+            }
+
+            // 判断是否已读取配置文件中配置的最大边数
+            if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
+                // 若已读取最大边数退出不在读取
+                break;
             }
         }
         LOG(INFO) << "图加载完毕！";
@@ -172,6 +194,14 @@ const std::map<std::string, unsigned> &Graph::getNodeTypeCountList() const {
     return this->nodeTypeCountList;
 }
 
+const std::map<std::string, std::map<std::string, int>> &Graph::getNodeDegreeList() const {
+    return this->nodeDegreeList;
+}
+
+const std::map<std::string, std::map<std::string, int>> &Graph::getNodeTypeMaxDegreeList() const {
+    return this->nodeTypeMaxDegreeList;
+}
+
 const std::vector<std::string> &Graph::getWalkingSequence() const {
     return this->walkingSequence;
 }
@@ -210,10 +240,11 @@ void Graph::walk(const std::string &beginNodeType,
                  const std::vector<std::string> &stepDefine,
                  const std::map<std::string, std::string> &auxiliaryEdge,
                  const float &walkLengthRatio,
-                 const int &totalStepCount) {
+                 const float &restartRatio,
+                 const unsigned int &totalStepCount) {
     // 清空游走结果列表
     this->clearResultList();
-
+    // 清空图中全部节点的状态
     this->reset();
 
     // 检查开始点是否存在
@@ -225,7 +256,7 @@ void Graph::walk(const std::string &beginNodeType,
     // 获取开始点ID对应的点指针
     Node *beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
 
-    // 检查游走步定义是否正确
+    // 检查步长定义是否正确
     if (!stepDefine.empty()) {
         if (beginNode->getType() != stepDefine[0]) {
             // 开始点类型不匹配游走步类型定义
@@ -233,7 +264,7 @@ void Graph::walk(const std::string &beginNodeType,
             return;
         }
     } else {
-        // 游走步未定义
+        // 步长未定义
         LOG(ERROR) << "游走步未定义！";
         return;
     }
@@ -245,9 +276,7 @@ void Graph::walk(const std::string &beginNodeType,
     // 定义当前游走的步长
     int walkingLength;
 
-    // 计算当前步游走长度
-    // Todo
-    // 步长的计算需要更多试验和思考！！
+    // 计算一次游走的长度
     if (walkLengthRatio >= 0) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
         // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
@@ -324,6 +353,22 @@ void Graph::walk(const std::string &beginNodeType,
 #endif
                     }
 
+                    // 判断重启概率是否大于零
+                    if (restartRatio > 0) {
+                        // 重启概率大于0时启动重启策略
+                        // 生成0-1之间的随机数
+                        // 判断随机数是否小于重启概率
+                        if (this->randomDistribution(this->randomEngine) < restartRatio) {
+                            // 小于则将当前游走的步数置为最大步数退出本次迭代
+                            // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
+#ifdef INFO_LOG_OUTPUT
+                            LOG(INFO) << "[重启]";
+#endif
+                            i = walkingLength;
+                            break;
+                        }
+                    }
+
                     // 判断当前是否完成一步
                     if (j < stepDefine.size() - 1) {
                         // 尚未完成一步继续游走至步长定义中的下一步
@@ -340,10 +385,6 @@ void Graph::walk(const std::string &beginNodeType,
                     j++;
                 } else {
                     // 若不存在则上一个节点没有步长定义中的下一个节点，或者当前步最后一个节点不连接步长定义中的开始点，导致无路可走
-
-                    // ToDo
-                    // 重启策略
-                    // 当前游走到的点已经没有步长定义中指定类型的连接点
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[访问失败] 不存在步长定义中指定类型的当前点！";
 #endif
@@ -351,8 +392,6 @@ void Graph::walk(const std::string &beginNodeType,
                 }
             }
 
-            // ToDo
-            // 重启策略
             // 当前游走到的点已经没有步长定义中指定类型的连接点
             if (currentNode == nullptr) {
 #ifdef INFO_LOG_OUTPUT
@@ -367,12 +406,71 @@ void Graph::walk(const std::string &beginNodeType,
     }
 }
 
-void Graph::walk(const Node &beginNode,
-                 const std::vector<std::string> &stepDefine,
-                 const std::map<std::string, std::string> &auxiliaryEdge,
-                 const float &walkLengthRatio,
-                 const int &totalStepCount) {
-    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, totalStepCount);
+void Graph::walkFromNode(const Node &beginNode,
+                         const std::vector<std::string> &stepDefine,
+                         const std::map<std::string, std::string> &auxiliaryEdge,
+                         const float &walkLengthRatio,
+                         const float &restartRatio,
+                         const unsigned int &totalStepCount) {
+    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount);
+}
+
+void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
+                      const std::vector<std::vector<std::string>> &beginNodeIDList,
+                      const std::vector<std::vector<std::string>> &stepDefineList,
+                      const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
+                      const std::vector<float> &walkLengthRatioList,
+                      const std::vector<float> &restartRatioList,
+                      const std::vector<unsigned int> &totalStepCountList) {
+    // 遍历游走组
+    for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[游走组" << i << "] ";
+        LOG(INFO) << "[计算组内节点游走总步数]";
+#endif
+        std::vector<float> s;
+        float s_sum;
+        // 遍历游走组内的多个起点
+        for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+            std::string secondNodeType = stepDefineList[i][1 % stepDefineList[i].size()];
+
+            if (this->nodeDegreeList.contains(beginNodeTypeList[i] + ":" + beginNodeIDList[i][j])) {
+                unsigned int degree = this->nodeDegreeList.at(beginNodeTypeList[i] + ":" + beginNodeIDList[i][j]).at(secondNodeType);
+                float s_j = degree * (this->nodeTypeMaxDegreeList[beginNodeTypeList[i]][secondNodeType] - std::log(degree));
+                s.emplace_back(s_j);
+                s_sum += s_j;
+            } else {
+                s.emplace_back(0);
+            }
+        }
+        std::vector<unsigned int> stepCountList;
+        for (auto j = 0; j < s.size(); ++j) {
+            stepCountList.emplace_back(totalStepCountList[i] * (s[j] / s_sum));
+#ifdef INFO_LOG_OUTPUT
+            LOG(INFO) << "[组内节点类型" << j << "总步数] " << stepCountList[stepCountList.size() - 1];
+#endif
+        }
+
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[计算完成]";
+        LOG(INFO) << "[启动组内游走]";
+#endif
+
+        for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+            std::thread t(&Graph::walk, this,
+                          std::cref(beginNodeTypeList[i]),
+                          std::cref(beginNodeIDList[i][j]),
+                          std::cref(stepDefineList[i]),
+                          std::cref(auxiliaryEdgeList[i]),
+                          std::cref(walkLengthRatioList[i]),
+                          std::cref(restartRatioList[i]),
+                          std::cref(stepCountList[j]));
+            t.join();
+        }
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[本组游走结束]";
+#endif
+    }
 }
 
 void Graph::reset() {
@@ -553,8 +651,33 @@ void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> 
 
 void Graph::flush() {
     LOG(INFO) << "刷新图！";
+    // 遍历图中全部节点
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        // 刷新当前点
         iter->second->flushLinkedNodes();
+        // 遍历当前点的分类型链表
+        for (auto subIter = iter->second->getLinkedNodeMapList().begin(); subIter != iter->second->getLinkedNodeMapList().end(); ++subIter) {
+            // 建立当前节点的分类型度数列表
+            this->nodeDegreeList[iter->first] = std::map<std::string, int>();
+            // 存储当前节点的分类型度数
+            this->nodeDegreeList[iter->first][subIter->first] = subIter->second.first.size();
+
+            // 判断当前节点的类型在分类型最大度数列表中是否存在
+            if (!this->nodeTypeMaxDegreeList.contains(iter->second->getType())) {
+                // 不存在则建立
+                this->nodeTypeMaxDegreeList[iter->second->getType()] = std::map<std::string, int>();
+            }
+            // 判断当前节点类型的分类型最大度数列表中对应类型的最大度数是否存在
+            if (!this->nodeTypeMaxDegreeList[iter->second->getType()].contains(subIter->first)) {
+                // 不存在则将当前节点类型的当前链接点类型的度数存入
+                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.first.size();
+            }
+            // 判断当前节点的当前链接点类型的度数是否大于当前节点类型分类型最大度数列表中对应的最大度数
+            if (subIter->second.first.size() > this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first]) {
+                // 若大于则更新
+                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.first.size();
+            }
+        }
     }
 }
 
