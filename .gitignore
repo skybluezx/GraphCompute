@@ -9,6 +9,9 @@ build/cmake_install.cmake
 build/compile.sh
 build/config/
 build/task/
+build/graph_define/
+build/result/
+build/test_data/
 
 # Prerequisites
 *.d
