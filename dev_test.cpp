@@ -62,9 +62,7 @@ int main(int argc, char* argv[]) {
     }
     google::FlushLogFiles(google::INFO);
 
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/exp_graph_prune.json";
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/main_exclude_test_courseware.json";
-    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test_single_input.json";
+    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_multi_train.json";
     std::ifstream jsonFile(json_file_path);
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();
@@ -76,7 +74,7 @@ int main(int argc, char* argv[]) {
     std::string resultDirectoryPath;
     Util::getConfig("Path", "result_directory", resultDirectoryPath);
 
-//    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     clock_t startTime, endTime;
     startTime = clock();//计时开始
 
@@ -84,9 +82,9 @@ int main(int argc, char* argv[]) {
     Command::execute(graph, jsonString, resultDirectoryPath);
 
     endTime = clock();//计时结束
-//    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-//    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-//    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
     std::cout << "[INFO] 命令执行时间：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
 
     google::ShutdownGoogleLogging();

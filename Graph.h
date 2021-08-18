@@ -60,6 +60,18 @@ public:
     const std::map<std::string, unsigned> &getNodeTypeCountList() const;
 
     /**
+     * 获取当前图中每个节点的分类型度数列表
+     * @return
+     */
+    const std::map<std::string, std::map<std::string, int>> &getNodeDegreeList() const;
+
+    /**
+     * 获取当前图中全部节点类型对应的分类型最大度数列表
+     * @return
+     */
+    const std::map<std::string, std::map<std::string, int>> &getNodeTypeMaxDegreeList() const;
+
+    /**
      * 获取游走序列
      * @return
      */
@@ -99,14 +111,24 @@ public:
               const std::vector<std::string> &stepDefine,
               const std::map<std::string, std::string> &auxiliaryEdge,
               const float &walkLengthRatio,
-              const int &totalStepCount);
+              const float &restartRatio,
+              const unsigned int &totalStepCount);
     // 游走方法的多态
     // 传入开始点对象
-    void walk(const Node &beginNode,
-              const std::vector<std::string> &stepDefine,
-              const std::map<std::string, std::string> &auxiliaryEdge,
-              const float &walkLengthRatio,
-              const int &totalStepCount);
+    void walkFromNode(const Node &beginNode,
+                      const std::vector<std::string> &stepDefine,
+                      const std::map<std::string, std::string> &auxiliaryEdge,
+                      const float &walkLengthRatio,
+                      const float &restartRatio,
+                      const unsigned int &totalStepCount);
+
+    void multiWalk(const std::vector<std::string> &beginNodeTypeList,
+                   const std::vector<std::vector<std::string>> &beginNodeIDList,
+                   const std::vector<std::vector<std::string>> &stepDefineList,
+                   const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
+                   const std::vector<float> &walkLengthRatioList,
+                   const std::vector<float> &restartRatioList,
+                   const std::vector<unsigned int> &totalStepCountList);
 
     /**
      * 图重置方法
@@ -209,8 +231,6 @@ private:
      */
     std::map<const std::string, Node *const> nodeList;
 
-//    std::map<const std::string, Node *const> typeNodeList;
-
     /**
      * 图中点的类型字典
      * Key为类型
@@ -218,13 +238,44 @@ private:
      */
     std::map<std::string, unsigned> nodeTypeCountList;
 
+    /**
+     * 图中点的读书字典
+     * Key为节点TypeID
+     * Value为该点的度数字典
+     */
+    std::map<std::string, std::map<std::string, int>> nodeDegreeList;
+
+    /**
+     * 图中不同类型点的最大度数
+     */
+    std::map<std::string, std::map<std::string, int>> nodeTypeMaxDegreeList;
+
+    /**
+     * 图操作结果类型
+     * visited_count    被访问过的节点访问次数字典
+     * walking_sequence 按访问顺序存储的节点TypeID列表
+     */
     std::string resultType;
 
+    /**
+     * 被访问过的节点访问次数字典
+     */
     std::unordered_map<std::string, Node*> visitedNodeList;
 
+    /**
+     * 按访问顺序存储的节点TypeID列表
+     */
     std::vector<std::string> walkingSequence;
 
-    std::unordered_map<std::string, int> firstWalkingSequenceWithVisitedCount;
+    /**
+     * 随机数生成引擎
+     */
+    std::default_random_engine randomEngine;
+
+    /**
+     * 随机数分布器
+     */
+    std::uniform_real_distribution<double> randomDistribution;
 };
 
 
