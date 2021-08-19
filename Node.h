@@ -6,6 +6,7 @@
 #define GRAPHCOMPUTE_NODE_H
 
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <string>
 #include <random>
@@ -91,20 +92,20 @@ public:
      * 访问点
      * 访问次数加1
      */
-    void visit();
+    void visit(const unsigned int &threadNum = 0);
 
     /**
      * 判断当前节点是否访问过
      * 若访问次数大于1则返回true否则返回false
      * @return
      */
-    bool isVisited() const;
+    bool isVisited(const unsigned int &threadNum = 0) const;
 
     /**
      * 获取当前节点的访问次数
      * @return
      */
-    int getVisitedCount() const;
+    int getVisitedCount(const unsigned int &threadNum = 0) const;
 
     /**
      * 获得当前点的下一个连接点
@@ -170,7 +171,7 @@ private:
     /**
      * 图遍历或游走的状态信息
      */
-    unsigned int vistedCount = 0;
+    std::map<unsigned int, unsigned int> vistedCount;
 
     /**
      * 随机引擎

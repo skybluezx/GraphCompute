@@ -279,19 +279,22 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             visitedCountTopNList.emplace_back(iter->as_int64());
         }
 
+//        for (auto i = 0; i < beginNodeIDList.size(); ++i) {
         // 游走
         graph.multiWalk(beginNodeTypeList, beginNodeIDList, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList);
 
-//        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-//        std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType);
-//        // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-//        if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
-//        std::ofstream resultFile;
-//        resultFile.open(resultDirectoryPath + "/" + beginNodeType + ":" + beginNodeIDList[i] + "_result.dat");
-//        for (auto i = 0; i < visitedCountTopN; ++i) {
-//            resultFile << result[i].first << ": " << result[i].second << std::endl;
+//        for (auto i = 0; i < beginNodeIDList.size(); ++i) {
+//            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+//            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i]);
+//            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+//            if (visitedCountTopNList[i] > result.size()) visitedCountTopNList[i] = result.size();
+//            std::ofstream resultFile;
+//            resultFile.open(resultDirectoryPath + "/" + beginNodeTypeList[i] + ":" + beginNodeIDList[i] + "_result.dat");
+//            for (auto i = 0; i < visitedCountTopNList[i]; ++i) {
+//                resultFile << result[i].first << ": " << result[i].second << std::endl;
+//            }
+//            resultFile.close();
 //        }
-//        resultFile.close();
 
         LOG(INFO) << "[执行完毕！]";
     }

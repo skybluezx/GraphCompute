@@ -112,7 +112,8 @@ public:
               const std::map<std::string, std::string> &auxiliaryEdge,
               const float &walkLengthRatio,
               const float &restartRatio,
-              const unsigned int &totalStepCount);
+              const unsigned int &totalStepCount,
+              const unsigned int &threadNum = 0);
     // 游走方法的多态
     // 传入开始点对象
     void walkFromNode(const Node &beginNode,
@@ -120,7 +121,8 @@ public:
                       const std::map<std::string, std::string> &auxiliaryEdge,
                       const float &walkLengthRatio,
                       const float &restartRatio,
-                      const unsigned int &totalStepCount);
+                      const unsigned int &totalStepCount,
+                      const unsigned int &threadNum = 0);
 
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
                    const std::vector<std::vector<std::string>> &beginNodeIDList,

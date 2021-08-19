@@ -241,7 +241,8 @@ void Graph::walk(const std::string &beginNodeType,
                  const std::map<std::string, std::string> &auxiliaryEdge,
                  const float &walkLengthRatio,
                  const float &restartRatio,
-                 const unsigned int &totalStepCount) {
+                 const unsigned int &totalStepCount,
+                 const unsigned int &threadNum) {;
     // 清空游走结果列表
     this->clearResultList();
     // 清空图中全部节点的状态
@@ -308,7 +309,7 @@ void Graph::walk(const std::string &beginNodeType,
                 // 判断当前点是否不存在
                 if (currentNode != nullptr) {
                     // 访问当前步的开始点
-                    currentNode->visit();
+                    currentNode->visit(threadNum);
                     this->insertResultList(currentNode);
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[访问当前点] " << stepDefine[j] << ":" << currentNode->getID();
@@ -323,7 +324,7 @@ void Graph::walk(const std::string &beginNodeType,
                         currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
                         if (auxiliaryNode != nullptr) {
                             // 存在辅助点则访问
-                            auxiliaryNode->visit();
+                            auxiliaryNode->visit(threadNum);
                             this->insertResultList(auxiliaryNode);
 #ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
@@ -332,7 +333,7 @@ void Graph::walk(const std::string &beginNodeType,
                             // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                             auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
                             if (currentNode != nullptr) {
-                                currentNode->visit();
+                                currentNode->visit(threadNum);
                                 this->insertResultList(currentNode);
 #ifdef INFO_LOG_OUTPUT
                                 LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
@@ -411,8 +412,9 @@ void Graph::walkFromNode(const Node &beginNode,
                          const std::map<std::string, std::string> &auxiliaryEdge,
                          const float &walkLengthRatio,
                          const float &restartRatio,
-                         const unsigned int &totalStepCount) {
-    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount);
+                         const unsigned int &totalStepCount,
+                         const unsigned int &threadNum) {
+    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount, threadNum);
 }
 
 void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
@@ -422,6 +424,7 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<float> &walkLengthRatioList,
                       const std::vector<float> &restartRatioList,
                       const std::vector<unsigned int> &totalStepCountList) {
+    unsigned int threadNum = 0;
     // 遍历游走组
     for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
 #ifdef INFO_LOG_OUTPUT
@@ -455,16 +458,20 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
         LOG(INFO) << "[计算完成]";
         LOG(INFO) << "[启动组内游走]";
 #endif
-
+        std::vector<std::thread> threadList;
         for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
-            std::thread t(&Graph::walk, this,
-                          std::cref(beginNodeTypeList[i]),
-                          std::cref(beginNodeIDList[i][j]),
-                          std::cref(stepDefineList[i]),
-                          std::cref(auxiliaryEdgeList[i]),
-                          std::cref(walkLengthRatioList[i]),
-                          std::cref(restartRatioList[i]),
-                          std::cref(stepCountList[j]));
+            threadList.emplace_back(std::thread(&Graph::walk, this,
+                                    std::cref(beginNodeTypeList[i]),
+                                    std::cref(beginNodeIDList[i][j]),
+                                    std::cref(stepDefineList[i]),
+                                    std::cref(auxiliaryEdgeList[i]),
+                                    std::cref(walkLengthRatioList[i]),
+                                    std::cref(restartRatioList[i]),
+                                    std::cref(stepCountList[j]),
+                                    std::cref(threadNum)));
+            threadNum++;
+        }
+        for (std::thread& t : threadList) {
             t.join();
         }
 #ifdef INFO_LOG_OUTPUT
