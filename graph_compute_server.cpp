@@ -50,6 +50,12 @@ int main(int argc, char* argv[]) {
     std::string resultDirectoryPath;
     Util::getConfig("Path", "result_directory", resultDirectoryPath);
 
+    LOG(INFO) << "配置文件路径：" << Util::configFilePath;
+    LOG(INFO) << "服务端名称：" << serverName;
+    LOG(INFO) << "日志输出路径：" << logDirectory;
+    LOG(INFO) << "日志输出等级：" << logLevel;
+    LOG(INFO) << "结果输出路径：" << resultDirectoryPath;
+
     std::string sharedMemoryObjectName = serverName + "shm";
     std::string namedMutexName = serverName + "mtx";
     std::string namedConditionName = serverName + "cnd";
@@ -108,7 +114,7 @@ int main(int argc, char* argv[]) {
                 google::FlushLogFiles(google::INFO);
                 named_cnd.notify_all();
                 named_cnd.wait(lock);
-            } else if (!commandString->empty() && *commandString != "EXIT") {
+            } else if (*commandString != "EXIT") {
                 // 收到命令时开始执行
                 LOG(INFO) << "收到任务开始执行！";
 
@@ -118,11 +124,6 @@ int main(int argc, char* argv[]) {
                     // 图状态重置
                     graph.reset();
                     LOG(INFO) << "重置图中节点状态！";
-                } else if (*commandString == "EXIT") {
-                    // 系统命令
-                    // 服务端退出
-                    LOG(INFO) << "结束服务！";
-                    break;
                 } else {
                     // 任务命令
                     // 将该命令的json字符串传入命令的执行方法执行
@@ -135,6 +136,11 @@ int main(int argc, char* argv[]) {
                 *commandString = "";
                 named_cnd.notify_all();
                 named_cnd.wait(lock);
+            } else if (*commandString == "EXIT") {
+                // 系统命令
+                // 服务端退出
+                LOG(INFO) << "结束服务！";
+                break;
             }
         } catch (std::exception &e) {
             // Todo
