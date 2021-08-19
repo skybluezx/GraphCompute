@@ -250,7 +250,7 @@ void Graph::walk(const std::string &beginNodeType,
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
-        LOG(ERROR) << "开始点不存在！";
+        LOG(ERROR) << "开始点不存在！" << beginNodeType + ":" + beginNodeID;
         return;
     }
 
