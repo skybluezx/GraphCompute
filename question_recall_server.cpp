@@ -85,16 +85,16 @@ int main(int argc, char* argv[]) {
     recallIn.expected = 100;
     // 设置本节课题目及作答结果
     recallIn.questions_assement["00042065a40e44cbbb828dbde48b3380"] = 1;
-//    recallIn.questions_assement["00056a833cdf47439b94b9d33a40c5dc"] = 2;
-//    recallIn.questions_assement["000c9dba24b5442dbf10492dc591dba1"] = 3;
-//    recallIn.questions_assement["000d692ddabf4457aacfa15a9fa6e3d2"] = 4;
-//    recallIn.questions_assement["0010530e1030415fa268fe21c987890b"] = 5;
+    recallIn.questions_assement["00056a833cdf47439b94b9d33a40c5dc"] = 2;
+    recallIn.questions_assement["000c9dba24b5442dbf10492dc591dba1"] = 3;
+    recallIn.questions_assement["000d692ddabf4457aacfa15a9fa6e3d2"] = 4;
+    recallIn.questions_assement["0010530e1030415fa268fe21c987890b"] = 5;
     // 设置本节课知识点及评测结果
-//    recallIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c03db"] = 0.5;
-//    recallIn.current_knowledge_points["a2cb5157fe734eb6a95dbbb6a29f3638"] = 0.8;
-//    recallIn.current_knowledge_points["32e7d0d2f797452bafa4c930c2d3121a"] = 0.9;
-//    recallIn.current_knowledge_points["abe940b2a0f54e05ad2a364b4952f866"] = 0.3;
-//    recallIn.current_knowledge_points["c1d5971750dc4634ac437f6688a4c156"] = 0.2;
+    recallIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c03db"] = 0.5;
+    recallIn.current_knowledge_points["a2cb5157fe734eb6a95dbbb6a29f3638"] = 0.8;
+    recallIn.current_knowledge_points["32e7d0d2f797452bafa4c930c2d3121a"] = 0.9;
+    recallIn.current_knowledge_points["abe940b2a0f54e05ad2a364b4952f866"] = 0.3;
+    recallIn.current_knowledge_points["c1d5971750dc4634ac437f6688a4c156"] = 0.2;
     // 设置前序课堂全部作答题目的ID及作答结果
     recallIn.preceding_questions_assement["01b96113ecb94b7c8bef62a92f2d47c7"] = 1;
     recallIn.preceding_questions_assement["01c0cefce12f4bf0b69788826662e329"] = 2;

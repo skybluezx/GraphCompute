@@ -63,7 +63,8 @@ int main(int argc, char* argv[]) {
     google::FlushLogFiles(google::INFO);
 
 //    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_multi_train.json";
-    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_train.json";
+//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_train.json";
+    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/test_train.json";
     std::ifstream jsonFile(json_file_path);
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();

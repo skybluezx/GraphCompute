@@ -141,6 +141,13 @@ public:
               const unsigned int &threadNum = 0,
               const bool &keepVisitedCount = false) const;
 
+    // 知识点-题目-课件定制游走方法
+    void walkOnThread1(const std::string &beginNodeType,
+                       const std::string &beginNodeID,
+                       const float &restartRatio,
+                       const unsigned int &totalStepCount,
+                       std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj);
+
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
                    const std::vector<std::map<std::string, double>> &beginNodeIDList,
                    const std::vector<std::vector<std::string>> &stepDefineList,
