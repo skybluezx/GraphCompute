@@ -155,7 +155,7 @@ public:
      * 图重置方法
      * 重置图中全部节点用于记录遍历/游走的状态信息
      */
-    void reset();
+    void reset(const bool &onlyVisitedCount = true);
 
     /**
      * 获取访问列表中全部节点按照访问次数从大到小顺序的列表

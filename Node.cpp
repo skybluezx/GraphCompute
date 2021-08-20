@@ -150,9 +150,17 @@ bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode
     return Node::getNextLinkedNode(nodeList, nextNode, strategy, this->randomEngine, randomDistribution);
 }
 
-void Node::reset() {
-    // 已访问状态重置为未访问
-    this->vistedCount = 0;
+void Node::reset(const bool &onlyVisitedCount) {
+    if (onlyVisitedCount) {
+        // 已访问状态重置为未访问
+        this->vistedCount = 0;
+    } else {
+        this->vistedCount = 0;
+        this->canVisitFlag = true;
+        for (auto iter = this->linkedNodeList.begin(); iter != this->linkedNodeList.end(); ++iter) {
+            iter->second = true;
+        }
+    }
 }
 
 void Node::exclude() {

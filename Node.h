@@ -121,7 +121,7 @@ public:
     /**
      * 重置图遍历/游走的状态信息
      */
-    void reset();
+    void reset(const bool &onlyVisitedCount = true);
 
     /**
      * 排除点

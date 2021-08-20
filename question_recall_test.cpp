@@ -7,6 +7,7 @@
 #include "Graph.h"
 
 #include "Command.h"
+#include "question_recall_define.h"
 
 /**
  * 定义命令行参数
@@ -47,8 +48,18 @@ int main(int argc, char* argv[]) {
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
     std::string resultType;
     Util::getConfig("Input", "result_type", resultType);
+
+    LOG(INFO) << "配置文件路径：" << Util::configFilePath;
+    LOG(INFO) << "日志输出路径：" << logDirectory;
+    LOG(INFO) << "日志输出等级：" << logLevel;
+    LOG(INFO) << "图定义路径：" << graphDefineDirectory;
+    LOG(INFO) << "读取边数：" << readEdgeCount;
+    LOG(INFO) << "图结果类型：" << resultType;
+    google::FlushLogFiles(google::INFO);
+
     // 建立图
     Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount);
+    // 刷新图
     graph.flush();
     // 输出图的概要
     auto nodeTypeCountList = graph.getNodeTypeCountList();
@@ -57,32 +68,41 @@ int main(int argc, char* argv[]) {
     }
     google::FlushLogFiles(google::INFO);
 
-//    //    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/exp_graph_prune.json";
-//    //    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/main_exclude_test_courseware.json";
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/task/test_single_input.json";
-//    std::ifstream jsonFile(json_file_path);
-//    std::stringstream buffer;
-//    buffer << jsonFile.rdbuf();
-//    std::string jsonString(buffer.str());
-//    std::cout << "执行命令：" << std::endl;
-//    std::cout << jsonString << std::endl;
-//
-//    // 读取计算结果输出路径
-//    std::string resultDirectoryPath;
-//    Util::getConfig("Path", "result_directory", resultDirectoryPath);
-//
-//    //    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-//    clock_t startTime, endTime;
-//    startTime = clock();//计时开始
-//
-//    // 执行命令
-//    Command::execute(graph, jsonString, resultDirectoryPath);
-//
-//    endTime = clock();//计时结束
-//    //    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-//    //    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-//    //    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
-//    std::cout << "[INFO] 命令执行时间：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
+    // 生成题目召回的测试入参
+    arch::In testIn;
+    // 设置召回目标题目数
+    testIn.expected = 100;
+    // 设置本节课题目及作答结果
+    testIn.questions_assement["00042065a40e44cbbb828dbde48b3380"] = 1;
+    testIn.questions_assement["00056a833cdf47439b94b9d33a40c5dc"] = 2;
+    testIn.questions_assement["000c9dba24b5442dbf10492dc591dba1"] = 3;
+    testIn.questions_assement["000d692ddabf4457aacfa15a9fa6e3d2"] = 4;
+    testIn.questions_assement["0010530e1030415fa268fe21c987890b"] = 5;
+    // 设置本节课知识点及评测结果
+    testIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c03db"] = 0.5;
+    testIn.current_knowledge_points["a2cb5157fe734eb6a95dbbb6a29f3638"] = 0.8;
+    testIn.current_knowledge_points["32e7d0d2f797452bafa4c930c2d3121a"] = 0.9;
+    testIn.current_knowledge_points["abe940b2a0f54e05ad2a364b4952f866"] = 0.3;
+    testIn.current_knowledge_points["c1d5971750dc4634ac437f6688a4c156"] = 0.2;
+    // 设置前序课堂全部作答题目的ID及作答结果
+    testIn.questions_assement["01b96113ecb94b7c8bef62a92f2d47c7"] = 1;
+    testIn.questions_assement["01c0cefce12f4bf0b69788826662e329"] = 2;
+    testIn.questions_assement["01c5dc41c3a94459bd8cb038d91a8f73"] = 3;
+    testIn.questions_assement["021f1a0352c44fbca5c84c3deb5b35da"] = 4;
+    testIn.questions_assement["01d01f8097d04428ad3f79abf5d1abeb"] = 5;
+    // 设置前序课堂全部知识点及测评结果
+    testIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c0519"] = 0.5;
+    testIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c057c"] = 0.8;
+    testIn.current_knowledge_points["e7e71d086b10469f8e71d733ac2a0c42"] = 0.9;
+    testIn.current_knowledge_points["ee664695d55446d5a2398115b674adf2"] = 0.3;
+    testIn.current_knowledge_points["6oo7ryi0e79zkqai08wbmeohxn6c0499"] = 0.2;
+
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    // 执行召回命令
+//    arch::Out testOut = Command::questionRecall(testIn);
+//    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+//    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+//    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
 
     google::ShutdownGoogleLogging();
 }

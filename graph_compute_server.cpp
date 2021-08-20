@@ -46,6 +46,14 @@ int main(int argc, char* argv[]) {
         FLAGS_minloglevel = google::ERROR;
     }
 
+    // 设置图定义文件目录
+    std::string graphDefineDirectory;
+    Util::getConfig("Path", "graph_define_directory", graphDefineDirectory);
+    // 读取配置文件中设置的边读取个数
+    int readEdgeCount;
+    Util::getConfig("Input", "read_edge_count", readEdgeCount);
+    std::string resultType;
+    Util::getConfig("Input", "result_type", resultType);
     // 读取计算结果输出路径
     std::string resultDirectoryPath;
     Util::getConfig("Path", "result_directory", resultDirectoryPath);
@@ -54,8 +62,10 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "服务端名称：" << serverName;
     LOG(INFO) << "日志输出路径：" << logDirectory;
     LOG(INFO) << "日志输出等级：" << logLevel;
+    LOG(INFO) << "图定义路径：" << graphDefineDirectory;
+    LOG(INFO) << "读取边数：" << readEdgeCount;
+    LOG(INFO) << "图结果类型：" << resultType;
     LOG(INFO) << "结果输出路径：" << resultDirectoryPath;
-
     google::FlushLogFiles(google::INFO);
 
     std::string sharedMemoryObjectName = serverName + "shm";
@@ -83,17 +93,9 @@ int main(int argc, char* argv[]) {
     /**
      * 主逻辑部分
      */
-
-    // 设置图定义文件目录
-    std::string graphDefineDirectory;
-    Util::getConfig("Path", "graph_define_directory", graphDefineDirectory);
-    // 读取配置文件中设置的边读取个数
-    int readEdgeCount;
-    Util::getConfig("Input", "read_edge_count", readEdgeCount);
-    std::string resultType;
-    Util::getConfig("Input", "result_type", resultType);
     // 建立图
     Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount);
+    // 刷新图
     graph.flush();
     // 输出图的概要
     auto nodeTypeCountList = graph.getNodeTypeCountList();
@@ -121,15 +123,20 @@ int main(int argc, char* argv[]) {
                 LOG(INFO) << "收到任务开始执行！";
 
                 // 判断是系统命令还是任务命令
-                if (*commandString == "RESET") {
+                if (*commandString == "RESET_ONLY_VISITED_COUNT") {
                     // 系统命令
                     // 图状态重置
                     graph.reset();
-                    LOG(INFO) << "重置图中节点状态！";
+                    LOG(INFO) << "重置图中节点状态！(仅重置访问次数)";
+                } else if (*commandString == "RESET") {
+                    // 系统命令
+                    // 图状态重置
+                    graph.reset(false);
+                    LOG(INFO) << "重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）";
                 } else {
-                    // 任务命令
-                    // 将该命令的json字符串传入命令的执行方法执行
-                    Command::execute(graph, commandString->c_str(), resultDirectoryPath);
+                        // 任务命令
+                        // 将该命令的json字符串传入命令的执行方法执行
+                        Command::execute(graph, commandString->c_str(), resultDirectoryPath);
                 }
 
                 // 写入全部日志

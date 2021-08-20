@@ -51,9 +51,15 @@ int main(int argc, char* argv[]) {
             *command = "EXIT";
             named_cnd.notify_all();
             named_cnd.wait(lock);
+        } else if (FLAGS_action == "RESET_ONLY_VISITED_COUNT") {
+            // 执行服务端图重置命令
+            std::cout << "[INFO] 重置GraphCompute服务端存储的图状态！（仅重置图中节点的访问次数）" << std::endl;
+            *command = "RESET_ONLY_VISITED_COUNT";
+            named_cnd.notify_all();
+            named_cnd.wait(lock);
         } else if (FLAGS_action == "RESET") {
             // 执行服务端图重置命令
-            std::cout << "[INFO] 重置GraphCompute服务端存储的图状态！" << std::endl;
+            std::cout << "[INFO] 重置GraphCompute服务端存储的图状态！（恢复初始状态，包括节点访问次数和已排除的点与边）" << std::endl;
             *command = "RESET";
             named_cnd.notify_all();
             named_cnd.wait(lock);

@@ -708,10 +708,9 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
     std::cout << "10" << std::endl;
 }
 
-void Graph::reset() {
-    // 遍历图中全部节点重置节点状态
+void Graph::reset(const bool &onlyVisitedCount) {
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-        iter->second->reset();
+        iter->second->reset(onlyVisitedCount);
     }
 }
 
@@ -864,6 +863,9 @@ void Graph::excludeEdges(const std::vector<std::pair<std::string, std::string>> 
         if (this->nodeList.contains(iter->first)) {
             this->nodeList.at(iter->first)->excludeEdge(iter->second);
         }
+        if (this->nodeList.contains(iter->second)) {
+            this->nodeList.at(iter->second)->excludeEdge(iter->first);
+        }
     }
 }
 
@@ -882,6 +884,9 @@ void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> 
     for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
         if (this->nodeList.contains(iter->first)) {
             this->nodeList.at(iter->first)->includeEdge(iter->second);
+        }
+        if (this->nodeList.contains(iter->second)) {
+            this->nodeList.at(iter->second)->includeEdge(iter->first);
         }
     }
 }
