@@ -139,10 +139,10 @@ public:
               const unsigned int &totalStepCount,
               std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj,
               const unsigned int &threadNum = 0,
-              const bool &keepVisitedCount = false);
+              const bool &keepVisitedCount = false) const;
 
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
-                   const std::vector<std::vector<std::string>> &beginNodeIDList,
+                   const std::vector<std::map<std::string, double>> &beginNodeIDList,
                    const std::vector<std::vector<std::string>> &stepDefineList,
                    const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                    const std::vector<float> &walkLengthRatioList,

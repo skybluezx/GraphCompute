@@ -214,11 +214,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         }
 
         // 获取开始点ID
-        std::vector<std::vector<std::string>> beginNodeIDList ;
+        std::vector<std::map<std::string, double>> beginNodeIDList ;
         for (auto iter = commandObj.at("beginNodeID").as_array().begin(); iter != commandObj.at("beginNodeID").as_array().end(); ++iter) {
-            std::vector<std::string> idList;
+            std::map<std::string, double> idList;
             for (auto subIter = iter->as_array().begin(); subIter != iter->as_array().end(); ++subIter){
-                idList.emplace_back(subIter->as_string().c_str());
+                idList[subIter->as_string().c_str()] = 0;
             }
             beginNodeIDList.emplace_back(idList);
         }
@@ -299,14 +299,14 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             }
             std::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
 
-            for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
                 // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
                 std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i], threadNum);
                 // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
                 unsigned int count = visitedCountTopNList[i];
                 if (count > result.size()) count = result.size();
                 std::ofstream resultFile;
-                resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + beginNodeIDList[i][j] + "_result.dat");
+                resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + iter->first + "_result.dat");
                 for (auto k = 0; k < count; ++k) {
                     resultFile << result[k].first << ": " << result[k].second << std::endl;
                 }
@@ -320,18 +320,119 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
     }
 }
 
-//Out Command::questionRecall(In &request) {
-//    Out result;
-//
-//    for (auto iter = request.current_knowledge_points.begin(); iter != request.current_knowledge_points.end(); ++iter) {
-//
-//    }
-//
-//    for (auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter) {
-//
-//    }
-//
-//    result.code = 0;
-//
-//    return result;
-//}
+arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
+    arch::Out result;
+
+    /**
+     * 多路召回
+     */
+    // 将知识点召回的知识点及其权重放入开始点列表
+    std::vector<std::map<std::string, double>> beginNodeIDList;
+    beginNodeIDList.emplace_back(request.current_knowledge_points);
+
+    // 按题目召回
+    std::map<std::string, double> questionBeginNodeIDList;
+    for (auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter) {
+        questionBeginNodeIDList[iter->first] = iter->second;
+    }
+    beginNodeIDList.emplace_back(questionBeginNodeIDList);
+
+    // 多重游走
+    graph.multiWalk(Command::questionRecallBeginNodeTypeList,
+                    beginNodeIDList,
+                    Command::questionRecallStepDefineList,
+                    Command::questionRecallAuxiliaryEdgeList,
+                    Command::questionRecallWalkLengthRatioList,
+                    Command::questionRecallRestartRatioList,
+                    Command::questionRecallTotalStepCountList,
+                    Command::questionRecallIsSplitStepCountList,
+                    false);
+
+    /**
+     * 多路合并策略
+     */
+
+    /**
+     * 后过滤策略
+     */
+
+    // 选择题过滤
+    // 本节课的题目过滤
+    // 前序课堂的题目过滤
+
+    result.code = 0;
+
+    return result;
+}
+
+void Command::questionRecallInitialize(const std::string &configFilePath) {
+    if (!boost::filesystem::exists(configFilePath)) {
+        std::cerr << "[ERROR] JSON文件不存在！" << std::endl;
+    }
+    std::ifstream jsonFile(configFilePath);
+    std::stringstream buffer;
+    buffer << jsonFile.rdbuf();
+    std::string jsonString(buffer.str());
+
+    auto jsonObj = boost::json::parse(jsonString);
+
+    auto stepDefineObj = jsonObj.as_object().at("stepDefine").as_object();
+    Command::questionRecallStepDefineList.emplace_back(std::vector<std::string>());
+    Command::questionRecallStepDefineList.emplace_back(std::vector<std::string>());
+    for (auto iter = stepDefineObj["KnowledgePoint"].as_array().begin(); iter != stepDefineObj["KnowledgePoint"].as_array().end(); ++iter) {
+        Command::questionRecallStepDefineList[0].emplace_back(iter->as_string().c_str());
+    }
+    for (auto iter = stepDefineObj["Question"].as_array().begin(); iter != stepDefineObj["Question"].as_array().end(); ++iter) {
+        Command::questionRecallStepDefineList[1].emplace_back(iter->as_string().c_str());
+    }
+
+    auto auxiliaryEdgeObj = jsonObj.as_object().at("auxiliaryEdge").as_object();
+    Command::questionRecallAuxiliaryEdgeList.emplace_back(std::map<std::string, std::string>());
+    Command::questionRecallAuxiliaryEdgeList.emplace_back(std::map<std::string, std::string>());
+    for (auto iter = auxiliaryEdgeObj["KnowledgePoint"].as_object().begin(); iter != auxiliaryEdgeObj["KnowledgePoint"].as_object().end(); ++iter) {
+        Command::questionRecallAuxiliaryEdgeList[0][iter->key_c_str()] = iter->value().as_string().c_str();
+    }
+    for (auto iter = auxiliaryEdgeObj["Question"].as_object().begin(); iter != auxiliaryEdgeObj["Question"].as_object().end(); ++iter) {
+        Command::questionRecallAuxiliaryEdgeList[1][iter->key_c_str()] = iter->value().as_string().c_str();
+    }
+
+    auto walkLengthRatioObj = jsonObj.as_object().at("walkLengthRatio").as_object();
+    Command::questionRecallWalkLengthRatioList.emplace_back(walkLengthRatioObj.at("KnowledgePoint").as_double());
+    Command::questionRecallWalkLengthRatioList.emplace_back(walkLengthRatioObj.at("Question").as_double());
+
+    auto restartRatioObj = jsonObj.as_object().at("restartRatio").as_object();
+    Command::questionRecallRestartRatioList.emplace_back(restartRatioObj.at("KnowledgePoint").as_double());
+    Command::questionRecallRestartRatioList.emplace_back(restartRatioObj.at("Question").as_double());
+
+    auto totalStepCountObj = jsonObj.as_object().at("totalStepCount").as_object();
+    Command::questionRecallTotalStepCountList.emplace_back(totalStepCountObj.at("KnowledgePoint").as_int64());
+    Command::questionRecallTotalStepCountList.emplace_back(totalStepCountObj.at("Question").as_int64());
+
+    auto targetNodeTypeObj = jsonObj.as_object().at("targetNodeType").as_object();
+    Command::questionRecallTargetNodeTypeList.emplace_back(targetNodeTypeObj.at("KnowledgePoint").as_string().c_str());
+    Command::questionRecallTargetNodeTypeList.emplace_back(targetNodeTypeObj.at("Question").as_string().c_str());
+
+    auto isSplitStepCountObj = jsonObj.as_object().at("isSplitStepCount").as_object();
+    Command::questionRecallIsSplitStepCountList.emplace_back(isSplitStepCountObj.at("KnowledgePoint").as_bool());
+    Command::questionRecallIsSplitStepCountList.emplace_back(isSplitStepCountObj.at("Question").as_bool());
+}
+
+/**
+ * 静态成员变量初始化
+ */
+// 每一路召回的起点类型
+std::vector<std::string> Command::questionRecallBeginNodeTypeList = {"KnowledgePoint", "Question"};
+// 每一路召回对应的步长定义
+std::vector<std::vector<std::string>> Command::questionRecallStepDefineList;
+// 每一路召回对应的辅助边
+std::vector<std::map<std::string, std::string>> Command::questionRecallAuxiliaryEdgeList;
+// 每一路召回对应的单次游走步长参数
+std::vector<float> Command::questionRecallWalkLengthRatioList;
+// 每一路召回对应的重启概率
+std::vector<float> Command::questionRecallRestartRatioList;
+// 每一路召回对应的总游走步数
+std::vector<unsigned int> Command::questionRecallTotalStepCountList;
+// 每一路召回对应的召回目标
+std::vector<std::string> Command::questionRecallTargetNodeTypeList;
+// 每一路召回对应的总步数切分策略
+std::vector<bool> Command::questionRecallIsSplitStepCountList;

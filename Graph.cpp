@@ -278,6 +278,8 @@ void Graph::walk(const std::string &beginNodeType,
     // 定义当前游走的步长
     int walkingLength;
 
+    int length;
+
     // 计算一次游走的长度
     if (walkLengthRatio >= 0) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
@@ -298,6 +300,7 @@ void Graph::walk(const std::string &beginNodeType,
         currentNode = beginNode;
 
         // 遍历步长
+        length = 0;
         for (int i = 0; i < walkingLength; ++i) {
 #ifdef INFO_LOG_OUTPUT
             LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << i + 1 << "/" << walkingLength;
@@ -401,10 +404,12 @@ void Graph::walk(const std::string &beginNodeType,
 #endif
                 break;
             }
+
+            length++;
         }
 
         // 刷新当前步数
-        currentStepCount += walkingLength;
+        currentStepCount += length;
     }
 }
 
@@ -424,14 +429,15 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                          const unsigned int &totalStepCount,
                          std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj,
                          const unsigned int &threadNum,
-                         const bool &keepVisitedCount) {
+                         const bool &keepVisitedCount) const {
+    // 初始化随机引擎（目前用于游走过程中的重启策略）
+    std::default_random_engine randomEngine;
+    randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+    // 初始化随机数分布（目前初始化为0到1之间的实数）
+    std::uniform_real_distribution<double> randomDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+
     std::unordered_map<std::string, unsigned int> nodeVisitedCountList;
     nodeVisitedCountList.reserve(this->nodeList.size());
-
-    // 清空游走结果列表
-    this->clearResultList();
-    // 清空图中全部节点的状态
-    this->reset();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -465,6 +471,8 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     // 定义当前游走的步长
     int walkingLength;
 
+    int length;
+
     // 计算一次游走的长度
     if (walkLengthRatio >= 0) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
@@ -485,6 +493,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
         currentNode = beginNode;
 
         // 遍历步长
+        length = 0;
         for (int i = 0; i < walkingLength; ++i) {
 #ifdef INFO_LOG_OUTPUT
             LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << i + 1 << "/" << walkingLength;
@@ -557,7 +566,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                         // 重启概率大于0时启动重启策略
                         // 生成0-1之间的随机数
                         // 判断随机数是否小于重启概率
-                        if (this->randomDistribution(this->randomEngine) < restartRatio) {
+                        if (randomDistribution(randomEngine) < restartRatio) {
                             // 小于则将当前游走的步数置为最大步数退出本次迭代
                             // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
 #ifdef INFO_LOG_OUTPUT
@@ -568,17 +577,17 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                         }
                     }
 
-                    // 判断当前是否完成一步
-                    if (j < stepDefine.size() - 1) {
-                        // 尚未完成一步继续游走至步长定义中的下一步
-                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[j + 1]);
-                    } else {
-                        // 已完成一步游走至下一步的开始点
-                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
-#ifdef INFO_LOG_OUTPUT
-                        LOG(INFO) << "[完成一步] 前进至下一步的开始节点";
-#endif
-                    }
+//                    // 判断当前是否完成一步
+//                    if (j < stepDefine.size() - 1) {
+//                        // 尚未完成一步继续游走至步长定义中的下一步
+//                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[j + 1]);
+//                    } else {
+//                        // 已完成一步游走至下一步的开始点
+//                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
+//#ifdef INFO_LOG_OUTPUT
+//                        LOG(INFO) << "[完成一步] 前进至下一步的开始节点";
+//#endif
+//                    }
 
                     // 步长定义的索引增1
                     j++;
@@ -598,17 +607,19 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 #endif
                 break;
             }
+
+            length++;
         }
 
         // 刷新当前步数
-        currentStepCount += walkingLength;
+        currentStepCount += length;
     }
 
     promiseObj.set_value(nodeVisitedCountList);
 }
 
 void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
-                      const std::vector<std::vector<std::string>> &beginNodeIDList,
+                      const std::vector<std::map<std::string, double>> &beginNodeIDList,
                       const std::vector<std::vector<std::string>> &stepDefineList,
                       const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                       const std::vector<float> &walkLengthRatioList,
@@ -616,10 +627,16 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<unsigned int> &totalStepCountList,
                       const std::vector<bool> &isSplitStepCountList,
                       const bool &keepVisitedCount) {
+    // 清空游走结果列表
+    this->clearResultList();
+    // 清空图中全部节点的状态
+    this->reset();
+
     // 初始化线程起始编号为0
     unsigned int threadNum = 0;
-
+    // 线程池
     std::vector<std::thread> threadList;
+    // 线程返回的节点访问次数字典
     std::vector<std::future<std::unordered_map<std::string, unsigned int>>> futureList;
 
     // 遍历游走组
@@ -628,31 +645,33 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
         LOG(INFO) << "[游走组" << i << "] ";
         LOG(INFO) << "[计算组内节点游走总步数]";
 #endif
-        std::vector<unsigned int> stepCountList;
+        std::map<std::string, unsigned int> stepCountList;
         if (isSplitStepCountList[i]) {
             // 开始点度数权重
-            std::vector<float> s;
+            // first为起点自身权重
+            // second为起点度数权重
+            std::map<std::string, std::pair<double, float>> weightList;
             // 开始点度数权重之和
             float s_sum;
             // 遍历游走组内的多个起点
-            for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
                 std::string secondNodeType = stepDefineList[i][1 % stepDefineList[i].size()];
 
                 // 计算起点度数权重
-                if (this->nodeDegreeList.contains(beginNodeTypeList[i] + ":" + beginNodeIDList[i][j])) {
-                    unsigned int degree = this->nodeDegreeList.at(beginNodeTypeList[i] + ":" + beginNodeIDList[i][j]).at(secondNodeType);
+                if (this->nodeDegreeList.contains(beginNodeTypeList[i] + ":" + iter->first)) {
+                    unsigned int degree = this->nodeDegreeList.at(beginNodeTypeList[i] + ":" + iter->first).at(secondNodeType);
                     float s_j = degree * (this->nodeTypeMaxDegreeList[beginNodeTypeList[i]][secondNodeType] - std::log(degree));
-                    s.emplace_back(s_j);
+                    weightList[iter->first] = std::pair<double, float>(iter->second, s_j);
                     s_sum += s_j;
                 } else {
-                    s.emplace_back(0);
+                    weightList[iter->first] = std::pair<double, float>(iter->second, 0);;
                 }
             }
 
-            for (auto j = 0; j < s.size(); ++j) {
-                stepCountList.emplace_back(totalStepCountList[i] * (s[j] / s_sum));
+            for (auto iter = weightList.begin(); iter != weightList.end(); ++iter) {
+                stepCountList[iter->first] = weightList[iter->first].first * (totalStepCountList[i] * (weightList[iter->first].second / s_sum));
 #ifdef INFO_LOG_OUTPUT
-                LOG(INFO) << "[组内节点类型" << j << "总步数] " << stepCountList[stepCountList.size() - 1];
+                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
 #endif
             }
 #ifdef INFO_LOG_OUTPUT
@@ -660,26 +679,27 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
             LOG(INFO) << "[启动组内游走]";
 #endif
         } else {
-            for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
-                stepCountList.emplace_back(totalStepCountList[i]);
+            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+                stepCountList[iter->first] = totalStepCountList[i];
 #ifdef INFO_LOG_OUTPUT
-                LOG(INFO) << "[组内节点类型" << j << "总步数] " << stepCountList[stepCountList.size() - 1];
+                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
 #endif
             }
         }
+
         std::cout << "123" << std::endl;
-        for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+        for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
             std::promise<std::unordered_map<std::string, unsigned int>> promiseObj;
             futureList.push_back(promiseObj.get_future());
 
             threadList.push_back(std::thread(&Graph::walkOnThread, this,
                                     std::cref(beginNodeTypeList[i]),
-                                    std::cref(beginNodeIDList[i][j]),
+                                    std::cref(iter->first),
                                     std::cref(stepDefineList[i]),
                                     std::cref(auxiliaryEdgeList[i]),
                                     std::cref(walkLengthRatioList[i]),
                                     std::cref(restartRatioList[i]),
-                                    std::cref(stepCountList[j]),
+                                    std::cref(stepCountList[iter->first]),
                                     std::move(promiseObj),
                                     std::cref(threadNum),
                                     std::cref(keepVisitedCount)));
@@ -692,20 +712,21 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
 
     std::cout << "456" << std::endl;
 
-    for (auto i = 0; i < threadNum; ++i) {
-        std::unordered_map<std::string, unsigned int> nodeVisitedCount = futureList[i].get();
-        this->visitedNodeTypeIDCountList[i] = nodeVisitedCount;
-    }
+//    for (auto i = 0; i < threadNum; ++i) {
+//        std::unordered_map<std::string, unsigned int> nodeVisitedCount = futureList[i].get();
+//        this->visitedNodeTypeIDCountList[i] = nodeVisitedCount;
+//    }
 
     std::cout << "789" << std::endl;
 
     for (auto i = 0; i < threadNum; ++i) {
+        std::cout << i << std::endl;
         if (threadList[i].joinable()) {
             threadList[i].join();
         }
     }
 
-    std::cout << "10" << std::endl;
+    std::cout << std::endl;
 }
 
 void Graph::reset(const bool &onlyVisitedCount) {

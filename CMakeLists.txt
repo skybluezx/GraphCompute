@@ -14,7 +14,6 @@ set(CMAKE_CXX_STANDARD 20)
 find_package (glog 0.5.0 REQUIRED)
 find_package(Boost 1.62.0 REQUIRED COMPONENTS filesystem json)
 
-
 if (NOT Boost_FOUND)
     message("Boost not found")
 endif ()
@@ -37,6 +36,6 @@ add_executable(GraphComputeTest dev_test.cpp Util.cpp Util.h Graph.cpp Graph.h N
 target_link_libraries (GraphComputeTest glog::glog)
 target_link_libraries(GraphComputeTest ${Boost_LIBRARIES})
 
-add_executable(QuestionRecall question_recall_test.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h question_recall_define.h)
-target_link_libraries (QuestionRecall glog::glog)
-target_link_libraries(QuestionRecall ${Boost_LIBRARIES})
+add_executable(QuestionRecallServer question_recall_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h args.h)
+target_link_libraries (QuestionRecallServer glog::glog)
+target_link_libraries(QuestionRecallServer ${Boost_LIBRARIES})

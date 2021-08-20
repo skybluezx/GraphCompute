@@ -134,9 +134,9 @@ int main(int argc, char* argv[]) {
                     graph.reset(false);
                     LOG(INFO) << "重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）";
                 } else {
-                        // 任务命令
-                        // 将该命令的json字符串传入命令的执行方法执行
-                        Command::execute(graph, commandString->c_str(), resultDirectoryPath);
+                    // 任务命令
+                    // 将该命令的json字符串传入命令的执行方法执行
+                    Command::execute(graph, commandString->c_str(), resultDirectoryPath);
                 }
 
                 // 写入全部日志
