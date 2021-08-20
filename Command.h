@@ -11,6 +11,9 @@
 
 #include "question_recall_define.h"
 
+struct In;
+struct Out;
+
 class Command {
 public:
     static void execute(Graph &graph, const std::string &command, const std::string &resultDirectoryPath);

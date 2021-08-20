@@ -99,31 +99,20 @@ bool Node::canVisit() const {
     return this->canVisitFlag;
 }
 
-void Node::visit(const unsigned int &threadNum) {
-    if (!this->vistedCount.contains(threadNum)) {
-        this->vistedCount[threadNum] = 0;
-    }
-    this->vistedCount[threadNum]++;
+void Node::visit(const unsigned int &visitCount) {
+    this->vistedCount += visitCount;
 }
 
-bool Node::isVisited(const unsigned int &threadNum) const {
-    if (this->vistedCount.contains(threadNum)) {
-        if (this->vistedCount.at(threadNum) > 0) {
-            return true;
-        } else {
-            return false;
-        }
+bool Node::isVisited() const {
+    if (this->vistedCount > 0) {
+        return true;
     } else {
         return false;
     }
 }
 
-int Node::getVisitedCount(const unsigned int &threadNum) const {
-    if (this->vistedCount.contains(threadNum)) {
-        return this->vistedCount.at(threadNum);
-    } else {
-        return -1;
-    }
+int Node::getVisitedCount() const {
+    return this->vistedCount;
 }
 
 bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::string &type) {
@@ -163,7 +152,7 @@ bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode
 
 void Node::reset() {
     // 已访问状态重置为未访问
-    this->vistedCount.clear();
+    this->vistedCount = 0;
 }
 
 void Node::exclude() {

@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <future>
 
 #include "Util.h"
 #include "type_defination.h"
@@ -72,28 +73,23 @@ public:
     const std::map<std::string, std::map<std::string, int>> &getNodeTypeMaxDegreeList() const;
 
     /**
-     * 获取游走序列
-     * @return
-     */
-    const std::vector<std::string> &getWalkingSequence() const;
-
-    /**
-     * 获取访问次数列表
-     * @return
-     */
-    const std::unordered_map<std::string, Node*> &getVisitedNodeList() const;
-
-    /**
      * 遍历方法
      * 根据指定的开始节点遍历图中全部节点
      * @param beginNodeID 开始节点ID
      * @param type 遍历方式（深度或宽度）
      * @return 遍历顺序对应ID列表
      */
-    std::vector<std::string> traverse(const std::string &beginNodeType, const std::string &beginNodeID, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
+    std::vector<std::string> traverse(const std::string &beginNodeType,
+                                      const std::string &beginNodeID,
+                                      const WalkingDirection &type,
+                                      const EdgeChooseStrategy &strategy,
+                                      const bool &keepVisitedCount = false) const;
     // 遍历方法的多态
     // 传入开始点对象
-    std::vector<std::string> traverse(const Node &beginNode, const WalkingDirection &type, const EdgeChooseStrategy &strategy) const;
+    std::vector<std::string> traverse(const Node &beginNode,
+                                      const WalkingDirection &type,
+                                      const EdgeChooseStrategy &strategy,
+                                      const bool &keepVisitedCount = false) const;
 
     /**
      * 游走方法
@@ -112,17 +108,38 @@ public:
               const std::map<std::string, std::string> &auxiliaryEdge,
               const float &walkLengthRatio,
               const float &restartRatio,
-              const unsigned int &totalStepCount,
-              const unsigned int &threadNum = 0);
+              const unsigned int &totalStepCount);
     // 游走方法的多态
     // 传入开始点对象
-    void walkFromNode(const Node &beginNode,
+    void walk(const Node &beginNode,
                       const std::vector<std::string> &stepDefine,
                       const std::map<std::string, std::string> &auxiliaryEdge,
                       const float &walkLengthRatio,
                       const float &restartRatio,
-                      const unsigned int &totalStepCount,
-                      const unsigned int &threadNum = 0);
+                      const unsigned int &totalStepCount);
+
+    /**
+     * 游走方法（线程版）
+     * @param beginNodeType
+     * @param beginNodeID
+     * @param stepDefine
+     * @param auxiliaryEdge
+     * @param walkLengthRatio
+     * @param restartRatio
+     * @param totalStepCount
+     * @param threadNum
+     * @param keepVisitedCount
+     */
+    void walkOnThread(const std::string &beginNodeType,
+              const std::string &beginNodeID,
+              const std::vector<std::string> &stepDefine,
+              const std::map<std::string, std::string> &auxiliaryEdge,
+              const float &walkLengthRatio,
+              const float &restartRatio,
+              const unsigned int &totalStepCount,
+              std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj,
+              const unsigned int &threadNum = 0,
+              const bool &keepVisitedCount = false);
 
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
                    const std::vector<std::vector<std::string>> &beginNodeIDList,
@@ -130,7 +147,9 @@ public:
                    const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                    const std::vector<float> &walkLengthRatioList,
                    const std::vector<float> &restartRatioList,
-                   const std::vector<unsigned int> &totalStepCountList);
+                   const std::vector<unsigned int> &totalStepCountList,
+                   const std::vector<bool> &isSplitStepCountList,
+                   const bool &keepVisitedCount = false);
 
     /**
      * 图重置方法
@@ -154,7 +173,7 @@ public:
 
 //    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
 
-    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum = 0) const;
 
     /**
      * 判断两点在图中是否相连
@@ -194,13 +213,6 @@ public:
      * 若不刷新则图中节点的分类型链表将无法提供随机访问能力
      */
     void flush();
-
-    /**
-     * 清空图操作结果列表
-     * 根据图配置文件中的参数确定具体需要清空的列表
-     * 该方法也受Util类声明中相关宏定义的控制
-     */
-    void clearResultList();
 private:
     /**
      * 遍历的递归方法
@@ -224,7 +236,16 @@ private:
      */
     static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
 
-    void insertResultList(Node* &node);
+    static std::string getTypeFromTypeID(const std::string tpeID);
+
+    /**
+     * 清空图操作结果列表
+     * 根据图配置文件中的参数确定具体需要清空的列表
+     * 该方法也受Util类声明中相关宏定义的控制
+     */
+    void clearResultList(const unsigned int &threadNum = 0);
+
+    void insertResultList(Node* &node, const unsigned int &threadNum = 0);
 
     /**
      * 图中全部点的字典
@@ -262,12 +283,12 @@ private:
     /**
      * 被访问过的节点访问次数字典
      */
-    std::unordered_map<std::string, Node*> visitedNodeList;
+    std::map<unsigned int, std::unordered_map<std::string, unsigned int>> visitedNodeTypeIDCountList;
 
     /**
      * 按访问顺序存储的节点TypeID列表
      */
-    std::vector<std::string> walkingSequence;
+    std::map<unsigned int, std::vector<std::string>> walkingSequence;
 
     /**
      * 随机数生成引擎

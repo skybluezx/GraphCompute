@@ -56,6 +56,8 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "日志输出等级：" << logLevel;
     LOG(INFO) << "结果输出路径：" << resultDirectoryPath;
 
+    google::FlushLogFiles(google::INFO);
+
     std::string sharedMemoryObjectName = serverName + "shm";
     std::string namedMutexName = serverName + "mtx";
     std::string namedConditionName = serverName + "cnd";

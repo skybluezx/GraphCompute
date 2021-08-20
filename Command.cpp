@@ -190,10 +190,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
             std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType);
             // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-            if (visitedCountTopN > result.size()) visitedCountTopN = result.size();
+            int n = visitedCountTopN;
+            if (n > result.size()) n = result.size();
             std::ofstream resultFile;
             resultFile.open(resultDirectoryPath + "/" + beginNodeType + ":" + beginNodeIDList[i] + "_result.dat");
-            for (auto i = 0; i < visitedCountTopN; ++i) {
+            for (auto i = 0; i < n; ++i) {
                 resultFile << result[i].first << ": " << result[i].second << std::endl;
             }
             resultFile.close();
@@ -267,6 +268,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             totalStepCountList.emplace_back(iter->as_int64());
         }
 
+        // 获取是否切分总步长
+        std::vector<bool> isSplitStepCountList;
+        for (auto iter = commandObj.at("isSplitStepCount").as_array().begin(); iter != commandObj.at("isSplitStepCount").as_array().end(); ++iter) {
+            isSplitStepCountList.emplace_back(iter->as_bool());
+        }
+
         // 获取目标点类型
         std::vector<std::string> targetNodeTypeList;
         for (auto iter = commandObj.at("targetNodeType").as_array().begin(); iter != commandObj.at("targetNodeType").as_array().end(); ++iter) {
@@ -279,40 +286,52 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             visitedCountTopNList.emplace_back(iter->as_int64());
         }
 
-//        for (auto i = 0; i < beginNodeIDList.size(); ++i) {
-        // 游走
-        graph.multiWalk(beginNodeTypeList, beginNodeIDList, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList);
+        google::FlushLogFiles(google::INFO);
 
-//        for (auto i = 0; i < beginNodeIDList.size(); ++i) {
-//            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-//            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i]);
-//            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-//            if (visitedCountTopNList[i] > result.size()) visitedCountTopNList[i] = result.size();
-//            std::ofstream resultFile;
-//            resultFile.open(resultDirectoryPath + "/" + beginNodeTypeList[i] + ":" + beginNodeIDList[i] + "_result.dat");
-//            for (auto i = 0; i < visitedCountTopNList[i]; ++i) {
-//                resultFile << result[i].first << ": " << result[i].second << std::endl;
-//            }
-//            resultFile.close();
-//        }
+        // 游走
+        graph.multiWalk(beginNodeTypeList, beginNodeIDList, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
+
+        unsigned int threadNum = 0;
+        for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
+
+            if (std::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
+                std::filesystem::remove(resultDirectoryPath + '/' + std::to_string(i));
+            }
+            std::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
+
+            for (auto j = 0; j < beginNodeIDList[i].size(); ++j) {
+                // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+                std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i], threadNum);
+                // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+                unsigned int count = visitedCountTopNList[i];
+                if (count > result.size()) count = result.size();
+                std::ofstream resultFile;
+                resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + beginNodeIDList[i][j] + "_result.dat");
+                for (auto k = 0; k < count; ++k) {
+                    resultFile << result[k].first << ": " << result[k].second << std::endl;
+                }
+                resultFile.close();
+
+                threadNum++;
+            }
+        }
 
         LOG(INFO) << "[执行完毕！]";
     }
 }
 
-Out Command::questionRecall(In &request) {
-    Out result;
-    result.transaction_id = request.transaction_id;
-
-    for (auto iter = request.current_knowledge_points.begin(); iter != request.current_knowledge_points.end(); ++iter) {
-
-    }
-
-    for (auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter) {
-
-    }
-
-    result.code = 0;
-
-    return result;
-}
+//Out Command::questionRecall(In &request) {
+//    Out result;
+//
+//    for (auto iter = request.current_knowledge_points.begin(); iter != request.current_knowledge_points.end(); ++iter) {
+//
+//    }
+//
+//    for (auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter) {
+//
+//    }
+//
+//    result.code = 0;
+//
+//    return result;
+//}

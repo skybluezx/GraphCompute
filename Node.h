@@ -92,20 +92,20 @@ public:
      * 访问点
      * 访问次数加1
      */
-    void visit(const unsigned int &threadNum = 0);
+    void visit(const unsigned int &visitCount=1);
 
     /**
      * 判断当前节点是否访问过
      * 若访问次数大于1则返回true否则返回false
      * @return
      */
-    bool isVisited(const unsigned int &threadNum = 0) const;
+    bool isVisited() const;
 
     /**
      * 获取当前节点的访问次数
      * @return
      */
-    int getVisitedCount(const unsigned int &threadNum = 0) const;
+    int getVisitedCount() const;
 
     /**
      * 获得当前点的下一个连接点
@@ -171,7 +171,7 @@ private:
     /**
      * 图遍历或游走的状态信息
      */
-    std::map<unsigned int, unsigned int> vistedCount;
+    unsigned int vistedCount;
 
     /**
      * 随机引擎
