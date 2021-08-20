@@ -185,7 +185,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
         for (auto i = 0; i < beginNodeIDList.size(); ++i) {
             // 游走
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             graph.walk(beginNodeType, beginNodeIDList[i], stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount);
+            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+            LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
+            google::FlushLogFiles(google::INFO);
 
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
             std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType);

@@ -397,6 +397,8 @@ void Graph::walk(const std::string &beginNodeType,
                 }
             }
 
+            length++;
+
             // 当前游走到的点已经没有步长定义中指定类型的连接点
             if (currentNode == nullptr) {
 #ifdef INFO_LOG_OUTPUT
@@ -404,8 +406,6 @@ void Graph::walk(const std::string &beginNodeType,
 #endif
                 break;
             }
-
-            length++;
         }
 
         // 刷新当前步数
@@ -505,77 +505,77 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             while (j < stepDefine.size()) {
                 // 判断当前点是否不存在
                 if (currentNode != nullptr) {
-                    // 访问当前步的开始点
-                    if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
-                        nodeVisitedCountList[currentNode->getTypeID()] = 1;
-                    } else {
-                        nodeVisitedCountList.at(currentNode->getTypeID())++;
-                    }
+//                    // 访问当前步的开始点
+//                    if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
+//                        nodeVisitedCountList[currentNode->getTypeID()] = 1;
+//                    } else {
+//                        nodeVisitedCountList.at(currentNode->getTypeID())++;
+//                    }
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[访问当前点] " << stepDefine[j] << ":" << currentNode->getID();
 #endif
 
-                    // 访问辅助边
-                    // Todo
-                    // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
-                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
-                    if (auxiliaryEdge.contains(currentNode->getType())) {
-                        Node *auxiliaryNode;
-                        currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
-                        if (auxiliaryNode != nullptr) {
-                            // 存在辅助点则访问
-                            if (!nodeVisitedCountList.contains(auxiliaryNode->getTypeID())) {
-                                nodeVisitedCountList[auxiliaryNode->getTypeID()] = 1;
-                            } else {
-                                nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
-                            }
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
-#endif
-                            // 从辅助点返回
-                            // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                            auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
-                            if (currentNode != nullptr) {
-                                if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
-                                    nodeVisitedCountList[currentNode->getTypeID()] = 1;
-                                } else {
-                                    nodeVisitedCountList.at(currentNode->getTypeID())++;
+//                    // 访问辅助边
+//                    // Todo
+//                    // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
+//                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
+//                    if (auxiliaryEdge.contains(currentNode->getType())) {
+//                        Node *auxiliaryNode;
+//                        currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
+//                        if (auxiliaryNode != nullptr) {
+//                            // 存在辅助点则访问
+//                            if (!nodeVisitedCountList.contains(auxiliaryNode->getTypeID())) {
+//                                nodeVisitedCountList[auxiliaryNode->getTypeID()] = 1;
+//                            } else {
+//                                nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
+//                            }
+//#ifdef INFO_LOG_OUTPUT
+//                            LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
+//#endif
+//                            // 从辅助点返回
+//                            // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
+//                            auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
+//                            if (currentNode != nullptr) {
+//                                if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
+//                                    nodeVisitedCountList[currentNode->getTypeID()] = 1;
+//                                } else {
+//                                    nodeVisitedCountList.at(currentNode->getTypeID())++;
+//
+//                                }
+//#ifdef INFO_LOG_OUTPUT
+//                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+//#endif
+//                            } else {
+//#ifdef INFO_LOG_OUTPUT
+//                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+//#endif
+//                            }
+//                        } else {
+//#ifdef INFO_LOG_OUTPUT
+//                            LOG(INFO) << "当前点无辅助边！";
+//#endif
+//                        }
+//                    } else {
+//#ifdef INFO_LOG_OUTPUT
+//                        LOG(INFO) << "当前种类的点不存在辅助边！";
+//#endif
+//                    }
 
-                                }
-#ifdef INFO_LOG_OUTPUT
-                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
-#endif
-                            } else {
-#ifdef INFO_LOG_OUTPUT
-                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
-#endif
-                            }
-                        } else {
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "当前点无辅助边！";
-#endif
-                        }
-                    } else {
-#ifdef INFO_LOG_OUTPUT
-                        LOG(INFO) << "当前种类的点不存在辅助边！";
-#endif
-                    }
-
-                    // 判断重启概率是否大于零
-                    if (restartRatio > 0) {
-                        // 重启概率大于0时启动重启策略
-                        // 生成0-1之间的随机数
-                        // 判断随机数是否小于重启概率
-                        if (randomDistribution(randomEngine) < restartRatio) {
-                            // 小于则将当前游走的步数置为最大步数退出本次迭代
-                            // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "[重启]";
-#endif
-                            i = walkingLength;
-                            break;
-                        }
-                    }
+//                    // 判断重启概率是否大于零
+//                    if (restartRatio > 0) {
+//                        // 重启概率大于0时启动重启策略
+//                        // 生成0-1之间的随机数
+//                        // 判断随机数是否小于重启概率
+//                        if (randomDistribution(randomEngine) < restartRatio) {
+//                            // 小于则将当前游走的步数置为最大步数退出本次迭代
+//                            // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
+//#ifdef INFO_LOG_OUTPUT
+//                            LOG(INFO) << "[重启]";
+//#endif
+//                            i = walkingLength;
+//                            break;
+//                        }
+//                    }
 
 //                    // 判断当前是否完成一步
 //                    if (j < stepDefine.size() - 1) {
