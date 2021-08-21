@@ -26,7 +26,7 @@ public:
      * 读取图定义文件所在的文件建立图
      * @param graphDefineFileDirectoryPath
      */
-    explicit Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType="walking_sequence", const int &readEdgeCount = -1);
+    explicit Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType="walking_sequence", const int &readEdgeCount = -1, const int &maxWalkBeginNodeCount=0);
 
     /**
      * 析构方法
@@ -153,6 +153,7 @@ public:
                        const std::string &beginNodeID,
                        const float &restartRatio,
                        const unsigned int &totalStepCount,
+                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
                        std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
                        );
 
@@ -306,11 +307,13 @@ private:
      * walking_sequence 按访问顺序存储的节点TypeID列表
      */
     std::string resultType;
+    
+    int maxWalkBeginNodeCount;
 
     /**
      * 被访问过的节点访问次数字典
      */
-    std::map<unsigned int, std::unordered_map<std::string, unsigned int>> visitedNodeTypeIDCountList;
+    std::vector<std::unordered_map<std::string, unsigned int>> visitedNodeTypeIDCountList;
 
     /**
      * 按访问顺序存储的节点TypeID列表

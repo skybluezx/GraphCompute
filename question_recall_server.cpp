@@ -52,6 +52,9 @@ int main(int argc, char* argv[]) {
     std::string questionRecallConfigFile;
     Util::getConfig("QuestionRecall", "config_file_path", questionRecallConfigFile);
 
+    int maxWalkBeginNodeCount;
+    Util::getConfig("Input", "read_edge_count", maxWalkBeginNodeCount);    
+
     LOG(INFO) << "配置文件路径：" << Util::configFilePath;
     LOG(INFO) << "日志输出路径：" << logDirectory;
     LOG(INFO) << "日志输出等级：" << logLevel;
@@ -59,10 +62,11 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "读取边数：" << readEdgeCount;
     LOG(INFO) << "图结果类型：" << resultType;
     LOG(INFO) << "题目召回配置文件：" << questionRecallConfigFile;
+    LOG(INFO) << "最大支持开始点个数：" << maxWalkBeginNodeCount;
     google::FlushLogFiles(google::INFO);
 
     // 建立图
-    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount);
+    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount, maxWalkBeginNodeCount);
     // 刷新图
     graph.flush();
     // 输出图的概要
