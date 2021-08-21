@@ -631,32 +631,23 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
                           const std::string &beginNodeID,
                           const float &restartRatio,
                           const unsigned int &totalStepCount,
-                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
-                          std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
+                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList
+                          //std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
                           ) {
-    //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
     // 当前线程的随机引擎
     std::default_random_engine randomEngine;
     randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_real_distribution<double> randomDoubleDistribution;
-    //std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // 为了隔离每个线程的访问，所以每个线程体维护自己访问次数字典
-    // 节点的访问次数字典
-    //std::unordered_map<std::string, unsigned int> nodeVisitedCountList;
-    //nodeVisitedCountList.reserve(this->nodeList.size());
-    //for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-    //    nodeVisitedCountList[iter->first] = 0;
-    //}
-    // 预申请字典大小
-    // Todo
-    // 预申请大小需要再斟酌！
-    //nodeVisitedCountList.reserve(this->nodeList.size());
-    //std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+    
+    // 清空访问次数字典
+    for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
+        iter->second = 0;
+    }
+    
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
         LOG(ERROR) << "开始点不存在！" << beginNodeType + ":" + beginNodeID;
-        promiseObj.set_value(nodeVisitedCountList);
         return;
     }
 
@@ -666,7 +657,6 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
     if (beginNode->getLinkedNodeList().empty()) {
         // 若是孤立点则记一次访问然后结束游走
         nodeVisitedCountList[beginNode->getTypeID()] = 1;
-        promiseObj.set_value(nodeVisitedCountList);
         return;
     }
 
@@ -674,7 +664,6 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
     Node *currentNode = beginNode;
     // 初始化当前已完成步数为0
     int currentStepCount = 0;
-    //std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
 #ifdef INFO_LOG_OUTPUT
@@ -682,14 +671,8 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
 #endif
         // 步数加1
         currentStepCount++;
-        //std::chrono::steady_clock::time_point t4_1 = std::chrono::steady_clock::now();
         // 访问当前步的开始点
-//        if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
-//            nodeVisitedCountList[currentNode->getTypeID()] = 1;
-//        } else {
-            //nodeVisitedCountList.at(currentNode->getTypeID())++;
-//        }
-        //std::chrono::steady_clock::time_point t4_2 = std::chrono::steady_clock::now();
+        nodeVisitedCountList.at(currentNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
         LOG(INFO) << "[访问当前点] " << currentNode->getTypeID();
 #endif
@@ -706,25 +689,10 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
                 continue;
             }
         }
-        //std::chrono::steady_clock::time_point t4_3 = std::chrono::steady_clock::now();
         // 随机访问下一节点
         std::uniform_int_distribution<int> randomIntDistribution(0, currentNode->getLinkedNodeList().size() - 1);
-//        currentNode = currentNode->getLinkedNodeList()[randomIntDistribution(randomEngine)].first;
-        //std::chrono::steady_clock::time_point t4_4 = std::chrono::steady_clock::now();
-        
-        //std::cout << "4_2-4_1 " << duration_cast<std::chrono::duration<double>>(t4_2 - t4_1).count() << " " << std::endl;
-        //std::cout << "4_3-4_2 " << duration_cast<std::chrono::duration<double>>(t4_3 - t4_2).count() << " " << std::endl;
-        //std::cout << "4_4-4_3 " << duration_cast<std::chrono::duration<double>>(t4_4 - t4_3).count() << " " << std::endl;
+        currentNode = currentNode->getLinkedNodeList()[randomIntDistribution(randomEngine)].first;
     }
-    //std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
-    // 游走结束返回结果
-    promiseObj.set_value(nodeVisitedCountList);
-    //std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
-    
-    //std::cout << "2-1" << duration_cast<std::chrono::duration<double>>(t2 - t1).count() << " ";
-    //std::cout << "3-2" << duration_cast<std::chrono::duration<double>>(t3 - t2).count() << " ";
-    //std::cout << "4-3" << duration_cast<std::chrono::duration<double>>(t4 - t3).count() << " ";
-    //std::cout << "5-4"  << duration_cast<std::chrono::duration<double>>(t5 - t4).count() << " ";
 }
 
 void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
@@ -736,15 +704,10 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<unsigned int> &totalStepCountList,
                       const std::vector<bool> &isSplitStepCountList,
                       const bool &keepVisitedCount) {
-    // 清空游走结果列表
-//    this->clearResultList();
-
     // 初始化线程起始编号为0
     unsigned int threadNum = 0;
     // 线程池
     std::vector<std::thread> threadList;
-    // 线程返回的节点访问次数字典
-    std::vector<std::future<std::unordered_map<std::string, unsigned int>>> futureList;
 
     // 遍历游走组
     for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
@@ -799,9 +762,6 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                 break;
             }            
 
-            std::promise<std::unordered_map<std::string, unsigned int>> promiseObj;
-            futureList.emplace_back(promiseObj.get_future());
-            
             threadList.emplace_back(
                     std::thread(&Graph::walkOnThread1, this,
                                 std::cref(beginNodeTypeList[i]),
@@ -809,12 +769,11 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                                 std::cref(restartRatioList[i]),
                                 //std::cref(stepCountList[iter->first]),
                                 std::cref(totalStepCountList[i]),
-                                std::ref(this->visitedNodeTypeIDCountList[threadNum]),
-                                std::move(promiseObj)));
+                                std::ref(this->visitedNodeTypeIDCountList[threadNum])));
             threadNum++;
         }
         
-        if (threadNum == maxWalkBeginNodeCount) {
+        if (threadNum == this->maxWalkBeginNodeCount) {
             break;
         }
 
@@ -823,12 +782,7 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
 #endif
     }
 
-    for (auto i = 0; i < threadNum; ++i) {
-        std::unordered_map<std::string, unsigned int> nodeVisitedCount = futureList[i].get();
-        this->visitedNodeTypeIDCountList[i] = nodeVisitedCount;
-    }
-
-    for (auto i = 0; i < threadNum; ++i) {
+    for (auto i = 0; i < threadList.size(); ++i) {
         if (threadList[i].joinable()) {
             threadList[i].join();
         }

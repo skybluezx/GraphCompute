@@ -358,6 +358,17 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
     /**
      * 多路合并策略
      */
+    unsigned int threadNum = 0;
+    for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
+        for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i], threadNum);
+            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+            unsigned int count = visitedCountTopNList[i];
+            if (count > result.size()) count = result.size();
+            threadNum++;
+        }
+    }
 
     /**
      * 后过滤策略

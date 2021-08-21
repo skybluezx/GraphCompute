@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     Util::getConfig("QuestionRecall", "config_file_path", questionRecallConfigFile);
 
     int maxWalkBeginNodeCount;
-    Util::getConfig("Input", "read_edge_count", maxWalkBeginNodeCount);    
+    Util::getConfig("QuestionRecall", "max_walk_begin_node_count", maxWalkBeginNodeCount);    
 
     LOG(INFO) << "配置文件路径：" << Util::configFilePath;
     LOG(INFO) << "日志输出路径：" << logDirectory;
@@ -120,8 +120,6 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
     std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
-
-    graph.clearResultList();
 
     // 打印召回结果
     for (auto iter = recallOut.payload.begin(); iter != recallOut.payload.end(); ++iter) {
