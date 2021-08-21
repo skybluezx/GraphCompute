@@ -117,6 +117,8 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
     std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
 
+    graph.clearResultList();
+
     // 打印召回结果
     for (auto iter = recallOut.payload.begin(); iter != recallOut.payload.end(); ++iter) {
         std::cout << *iter << std::endl;

@@ -153,8 +153,7 @@ public:
                        const std::string &beginNodeID,
                        const float &restartRatio,
                        const unsigned int &totalStepCount,
-                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList
-//                       std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
+                       std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
                        );
 
     /**
@@ -241,6 +240,15 @@ public:
      * 若不刷新则图中节点的分类型链表将无法提供随机访问能力
      */
     void flush();
+
+    /**
+     * 清空图操作结果列表
+     * 根据图配置文件中的参数确定具体需要清空的列表
+     * 该方法也受Util类声明中相关宏定义的控制
+     */
+    void clearResultList(const unsigned int &threadNum = 0);
+
+    void insertResultList(Node* &node, const unsigned int &threadNum = 0);
 private:
     /**
      * 遍历的递归方法
@@ -265,15 +273,6 @@ private:
     static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
 
     static std::string getTypeFromTypeID(const std::string tpeID);
-
-    /**
-     * 清空图操作结果列表
-     * 根据图配置文件中的参数确定具体需要清空的列表
-     * 该方法也受Util类声明中相关宏定义的控制
-     */
-    void clearResultList(const unsigned int &threadNum = 0);
-
-    void insertResultList(Node* &node, const unsigned int &threadNum = 0);
 
     /**
      * 图中全部点的字典
