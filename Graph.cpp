@@ -150,14 +150,18 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {
         this->visitedNodeTypeIDCountList[0] = std::unordered_map<std::string, unsigned int>();
-        this->visitedNodeTypeIDCountList[0].reserve(this->nodeList.size());
+        for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+            this->visitedNodeTypeIDCountList[0][iter->first] = 0;
+        }
     } else {
         this->walkingSequence[0] = std::vector<std::string>();
         this->walkingSequence[0].reserve(this->nodeList.size());
     }
 #else
     this->visitedNodeTypeIDCountList[0] = std::unordered_map<std::string, unsigned int>();
-    this->visitedNodeTypeIDCountList[0].reserve(this->nodeList.size());
+    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        this->visitedNodeTypeIDCountList[0][iter->first] = 0;
+    }
 #endif
 }
 
@@ -622,7 +626,9 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
                           const std::string &beginNodeID,
                           const float &restartRatio,
                           const unsigned int &totalStepCount,
-                          std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj) {
+                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList
+//                          ,std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
+                          ) {
     // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
     // 当前线程的随机引擎
     std::default_random_engine randomEngine;

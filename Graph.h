@@ -153,7 +153,9 @@ public:
                        const std::string &beginNodeID,
                        const float &restartRatio,
                        const unsigned int &totalStepCount,
-                       std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj);
+                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList
+//                       std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
+                       );
 
     /**
      * 多重游走
