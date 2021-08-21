@@ -623,12 +623,18 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
                           const float &restartRatio,
                           const unsigned int &totalStepCount,
                           std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj) {
-
+    // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
+    // 当前线程的随机引擎
     std::default_random_engine randomEngine;
     randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_real_distribution<double> randomDoubleDistribution;
 
+    // 为了隔离每个线程的访问，所以每个线程体维护自己访问次数字典
+    // 节点的访问次数字典
     std::unordered_map<std::string, unsigned int> nodeVisitedCountList;
+    // 预申请字典大小
+    // Todo
+    // 预申请大小需要再斟酌！
     nodeVisitedCountList.reserve(this->nodeList.size());
 
     // 检查开始点是否存在
@@ -638,16 +644,17 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
         return;
     }
 
-    // 获取开始点ID对应的点指针
+    // 获取开始点ID对应的指针
     Node *beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
+    // 判断开始点是否是孤立点
     if (beginNode->getLinkedNodeList().empty()) {
+        // 若是孤立点则记一次访问然后结束游走
         nodeVisitedCountList[beginNode->getTypeID()] = 1;
-
         promiseObj.set_value(nodeVisitedCountList);
         return;
     }
 
-    // 定义开始点指针
+    // 初始化当前节点为开始点
     Node *currentNode = beginNode;
     // 初始化当前已完成步数为0
     int currentStepCount = 0;
@@ -655,8 +662,9 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
 #ifdef INFO_LOG_OUTPUT
-        LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << currentStepCount << "/" << totalStepCount;
+        LOG(INFO) << "[向前一步] 当前游走步数/总步数：" << currentStepCount << "/" << totalStepCount;
 #endif
+        // 步数加1
         currentStepCount++;
 
         // 访问当前步的开始点
@@ -665,29 +673,29 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
         } else {
             nodeVisitedCountList.at(currentNode->getTypeID())++;
         }
-//#ifdef INFO_LOG_OUTPUT
-//        LOG(INFO) << "[访问当前点] " << currentNode->getTypeID();
-//#endif
-//        // 判断重启概率是否大于零
-//        if (restartRatio > 0) {
-//            // 重启概率大于0时启动重启策略
-//            // 生成0-1之间的随机数
-//            // 判断随机数是否小于重启概率
-//            if (randomDoubleDistribution(randomEngine) < restartRatio) {
-//                // 小于则将当前游走的步数置为最大步数退出本次迭代
-//                // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
-//#ifdef INFO_LOG_OUTPUT
-//LOG(INFO) << "[重启]";
-//#endif
-//                currentNode = beginNode;
-//                continue;
-//            }
-//        }
-//
-//        std::uniform_int_distribution<int> randomIntDistribution(0, currentNode->getLinkedNodeList().size() - 1);
-//        currentNode = currentNode->getLinkedNodeList()[randomIntDistribution(randomEngine)].first;
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[访问当前点] " << currentNode->getTypeID();
+#endif
+        // 判断重启概率是否大于零
+        if (restartRatio > 0) {
+            // 重启概率大于0时启动重启策略
+            // 生成0-1之间的随机数
+            // 判断随机数是否小于重启概率
+            if (randomDoubleDistribution(randomEngine) < restartRatio) {
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "[重启]";
+#endif
+                currentNode = beginNode;
+                continue;
+            }
+        }
+
+        // 随机访问下一节点
+        std::uniform_int_distribution<int> randomIntDistribution(0, currentNode->getLinkedNodeList().size() - 1);
+        currentNode = currentNode->getLinkedNodeList()[randomIntDistribution(randomEngine)].first;
     }
 
+    // 游走结束返回结果
     promiseObj.set_value(nodeVisitedCountList);
 }
 
@@ -760,17 +768,17 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
             }
         }
 
-        std::cout << "123" << std::endl;
         for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
             std::promise<std::unordered_map<std::string, unsigned int>> promiseObj;
             futureList.push_back(promiseObj.get_future());
 
-            threadList.push_back(std::thread(&Graph::walkOnThread1, this,
-                                             std::cref(beginNodeTypeList[i]),
-                                             std::cref(iter->first),
-                                             std::cref(restartRatioList[i]),
-                                             std::cref(stepCountList[iter->first]),
-                                             std::move(promiseObj)));
+            threadList.emplace_back(
+                    std::thread(&Graph::walkOnThread1, this,
+                                std::cref(beginNodeTypeList[i]),
+                                std::cref(iter->first),
+                                std::cref(restartRatioList[i]),
+                                std::cref(stepCountList[iter->first]),
+                                std::move(promiseObj)));
             threadNum++;
         }
 #ifdef INFO_LOG_OUTPUT
@@ -778,23 +786,16 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
 #endif
     }
 
-    std::cout << "456" << std::endl;
-
-//    for (auto i = 0; i < threadNum; ++i) {
-//        std::unordered_map<std::string, unsigned int> nodeVisitedCount = futureList[i].get();
-//        this->visitedNodeTypeIDCountList[i] = nodeVisitedCount;
-//    }
-
-    std::cout << "789" << std::endl;
+    for (auto i = 0; i < threadNum; ++i) {
+        std::unordered_map<std::string, unsigned int> nodeVisitedCount = futureList[i].get();
+        this->visitedNodeTypeIDCountList[i] = nodeVisitedCount;
+    }
 
     for (auto i = 0; i < threadNum; ++i) {
-        std::cout << i << std::endl;
         if (threadList[i].joinable()) {
             threadList[i].join();
         }
     }
-
-    std::cout << std::endl;
 }
 
 void Graph::reset(const bool &onlyVisitedCount) {

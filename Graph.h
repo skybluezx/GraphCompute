@@ -119,7 +119,7 @@ public:
                       const unsigned int &totalStepCount);
 
     /**
-     * 游走方法（线程版）
+     * 多重游走方法的线程体（通用版本）
      * @param beginNodeType
      * @param beginNodeID
      * @param stepDefine
@@ -141,13 +141,32 @@ public:
               const unsigned int &threadNum = 0,
               const bool &keepVisitedCount = false) const;
 
-    // 知识点-题目-课件定制游走方法
+    /**
+     * 多重游走线程体（基于"知识点-题目-课件"步长定义的硬编码版本）
+     * @param beginNodeType     开始点类型
+     * @param beginNodeID       开始点ID
+     * @param restartRatio      重启概率
+     * @param totalStepCount    总步长
+     * @param promiseObj        返回游走结果的promise对象
+     */
     void walkOnThread1(const std::string &beginNodeType,
                        const std::string &beginNodeID,
                        const float &restartRatio,
                        const unsigned int &totalStepCount,
                        std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj);
 
+    /**
+     * 多重游走
+     * @param beginNodeTypeList
+     * @param beginNodeIDList
+     * @param stepDefineList
+     * @param auxiliaryEdgeList
+     * @param walkLengthRatioList
+     * @param restartRatioList
+     * @param totalStepCountList
+     * @param isSplitStepCountList
+     * @param keepVisitedCount
+     */
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
                    const std::vector<std::map<std::string, double>> &beginNodeIDList,
                    const std::vector<std::vector<std::string>> &stepDefineList,
