@@ -299,10 +299,10 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         unsigned int threadNum = 0;
         for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
 
-            if (std::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
-                std::filesystem::remove(resultDirectoryPath + '/' + std::to_string(i));
+            if (boost::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
+                boost::filesystem::remove(resultDirectoryPath + '/' + std::to_string(i));
             }
-            std::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
+            boost::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
 
             for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
                 // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
@@ -341,7 +341,7 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
         questionBeginNodeIDList[iter->first] = iter->second;
     }
     beginNodeIDList.emplace_back(questionBeginNodeIDList);
-
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // 多重游走
     graph.multiWalk(Command::questionRecallBeginNodeTypeList,
                     beginNodeIDList,
@@ -352,7 +352,9 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
                     Command::questionRecallTotalStepCountList,
                     Command::questionRecallIsSplitStepCountList,
                     false);
-
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
     /**
      * 多路合并策略
      */
