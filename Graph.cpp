@@ -898,24 +898,26 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     return nodeVisitedCountList;
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const {
-    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const {
+    std::vector<std::pair<std::string, int>> nodeVisitedCountList;    
 
     const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
     nodeVisitedCountList.reserve(typeNodeList.size());
-
+    
     int maxCount;
     for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
         maxCount = 0;
-        for (auto i = 0; i < this->visitedNodeTypeIDCountList.size(); ++i) {
-            if (this->visitedNodeTypeIDCountList[i].at((*iter)->getTypeID()) > maxCount) {
-                maxCount = this->visitedNodeTypeIDCountList[i].at((*iter)->getTypeID());
+        for (auto i = 0; i < threadNumList.size(); ++i) {
+            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID()) > maxCount) {
+                maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID());
             }
         }
-        nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
+        if (maxCount > 0) {
+            nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
+        }
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
-
+    
     return nodeVisitedCountList;
 }
 

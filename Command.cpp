@@ -354,12 +354,18 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
                     false);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
+    std::cout << "[INFO] 游走时长：" << programSpan.count() << "秒" << std::endl;
+    
     /**
      * 多路合并策略
      */
+    
+    std::vector<unsigned int> threadNumList;
+    for (auto i = 0; i < beginNodeIDList.size(); ++i) {
+        threadNumList.emplace_back(i);
+    }
     // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question");
+    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question", threadNumList);
 
     /**
      * 后过滤策略
@@ -377,7 +383,6 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
     /**
      * 生成召回题目列表
      */
-
     // 设置召回返回题目个数
     int recallCount = request.expected;
     // 判断总召回题目个数是否小于期待召回题目个数
