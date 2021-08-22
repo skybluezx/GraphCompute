@@ -41,6 +41,8 @@ public:
      */
     const std::map<const std::string, Node *const> &getNodeList() const;
 
+    const std::map<const std::string, std::vector<Node *>> &getTypeNodeList() const;
+
     /**
      * 获得指定ID的节点访问次数
      * @param id
@@ -71,6 +73,8 @@ public:
      * @return
      */
     const std::map<std::string, std::map<std::string, int>> &getNodeTypeMaxDegreeList() const;
+
+    const std::vector<std::unordered_map<std::string, unsigned int>> &getVisitedNodeTypeIDCountList() const;
 
     /**
      * 遍历方法
@@ -201,7 +205,12 @@ public:
 
 //    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
 
-    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum = 0) const;
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const;
+
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const;
+
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
+
 
     /**
      * 判断两点在图中是否相连
@@ -273,14 +282,26 @@ private:
      */
     static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
 
+    /**
+     * 从TypeID中获取Type
+     * @param tpeID
+     * @return
+     */
     static std::string getTypeFromTypeID(const std::string tpeID);
 
     /**
-     * 图中全部点的字典
+     * 图中节点的TypeID字典
      * key为点的ID
      * value为对应点的指针
      */
     std::map<const std::string, Node *const> nodeList;
+
+    /**
+     * 图中节点的类型字典
+     * key为节点的type
+     * value为该type对应的全部节点指针
+     */
+    std::map<const std::string, std::vector<Node *>> typeNodeList;
 
     /**
      * 图中点的类型字典
@@ -307,7 +328,12 @@ private:
      * walking_sequence 按访问顺序存储的节点TypeID列表
      */
     std::string resultType;
-    
+
+    /**
+     * 最大支持的同时游走的起点数量
+     * 该参数用于多线程游走时的并发数量控制
+     * 同时该参数也参与了多线程游走的性能优化（提前将每个线程的计数字典生成）
+     */
     int maxWalkBeginNodeCount;
 
     /**

@@ -358,28 +358,43 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
     /**
      * 多路合并策略
      */
-    unsigned int threadNum = 0;
-    for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
-        for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
-            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeTypeList[i], threadNum);
-            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-            unsigned int count = visitedCountTopNList[i];
-            if (count > result.size()) count = result.size();
-            threadNum++;
-        }
-    }
+    // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question");
 
     /**
      * 后过滤策略
      */
+    // 过滤题目ID列表
+    std::map<std::string, int32_t> filterQuestionList;
 
-    // 选择题过滤
-    // 本节课的题目过滤
-    // 前序课堂的题目过滤
+    // Todo 选择题过滤
+
+    // 加入本节课的题目
+    filterQuestionList.insert(request.questions_assement.begin(), request.questions_assement.end());
+    // 加入前序课堂的题目
+    filterQuestionList.insert(request.preceding_questions_assement.begin(), request.preceding_questions_assement.end());
+
+    /**
+     * 生成召回题目列表
+     */
+
+    // 设置召回返回题目个数
+    int recallCount = request.expected;
+    // 判断总召回题目个数是否小于期待召回题目个数
+    // 若小于则设置期待召回题目个数为总召回题目个数
+    if (recallList.size() < request.expected) recallCount = recallList.size();
+    // 遍历召回题目列表
+    for (auto i = 0; i < recallList.size(); ++i) {
+        // 判断当前题目是否在过略列表里
+        if (!filterQuestionList.contains(recallList[i].first)) {
+            // 不在则加入返回列表
+            result.payload.emplace_back(recallList[i].first);
+        }
+        // 判断返回题目数是否已满足期待召回个数
+        if (result.payload.size() == recallCount) break;
+    }
 
     result.code = 0;
-
     return result;
 }
 

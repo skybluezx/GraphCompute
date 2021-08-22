@@ -185,6 +185,10 @@ const std::map<const std::string, Node *const> &Graph::getNodeList() const {
     return this->nodeList;
 }
 
+const std::map<const std::string, std::vector<Node *>> &Graph::getTypeNodeList() const {
+    return this->typeNodeList;
+}
+
 const int Graph::getNodeVisitedCount(const std::string &id, const std::string &type) const {
     if (this->nodeList.contains(type + ":" + id)) {
         return this->nodeList.at(type + ":" + id)->getVisitedCount();
@@ -212,6 +216,10 @@ const std::map<std::string, std::map<std::string, int>> &Graph::getNodeDegreeLis
 
 const std::map<std::string, std::map<std::string, int>> &Graph::getNodeTypeMaxDegreeList() const {
     return this->nodeTypeMaxDegreeList;
+}
+
+const std::vector<std::unordered_map<std::string, unsigned int>> &Graph::getVisitedNodeTypeIDCountList() const {
+    return this->visitedNodeTypeIDCountList;
 }
 
 std::vector<std::string> Graph::traverse(const std::string &beginNodeType,
@@ -890,6 +898,27 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     return nodeVisitedCountList;
 }
 
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType) const {
+    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+
+    const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
+    nodeVisitedCountList.reserve(typeNodeList.size());
+
+    int maxCount;
+    for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
+        maxCount = 0;
+        for (auto i = 0; i < this->visitedNodeTypeIDCountList.size(); ++i) {
+            if (this->visitedNodeTypeIDCountList[i].at((*iter)->getTypeID()) > maxCount) {
+                maxCount = this->visitedNodeTypeIDCountList[i].at((*iter)->getTypeID());
+            }
+        }
+        nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
+    }
+    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+
+    return nodeVisitedCountList;
+}
+
 bool Graph::isLinked(const std::string &aNodeType, const std::string &aNodeID, const std::string &bNodeType, const std::string &bNodeID, std::vector<std::string> &traverseSequenceList) {
     bool result;
 
@@ -974,8 +1003,16 @@ void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> 
 
 void Graph::flush() {
     LOG(INFO) << "刷新图！";
+
+    for (auto iter = this->nodeTypeCountList.begin(); iter != this->nodeTypeCountList.end(); ++iter) {
+        this->typeNodeList[iter->first] = std::vector<Node *>();
+        this->typeNodeList[iter->first].reserve(iter->second);
+    }
+
     // 遍历图中全部节点
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        this->typeNodeList[iter->second->getType()].emplace_back(iter->second);
+
         // 刷新当前点
         iter->second->flushLinkedNodes();
         // 遍历当前点的分类型链表
