@@ -321,11 +321,10 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             }
         }
 
-        LOG(INFO) << "[执行完毕！]";
-    }
+        LOG(INFO) << "[执行完毕！]"; }
 }
 
-arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
+arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     arch::Out result;
 
     /**
@@ -354,12 +353,13 @@ arch::Out Command::questionRecall(arch::In &request, Graph &graph) {
                     false);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-    std::cout << "[INFO] 游走时长：" << programSpan.count() << "秒" << std::endl;
-    
+
+    LOG(INFO) << "[INFO] 游走时长：" << programSpan.count() << "秒" << std::endl;
+
     /**
      * 多路合并策略
      */
-    
+
     std::vector<unsigned int> threadNumList;
     for (auto i = 0; i < beginNodeIDList.size(); ++i) {
         threadNumList.emplace_back(i);
