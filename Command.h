@@ -27,7 +27,7 @@ public:
      * @param request
      * @return
      */
-    static arch::Out questionRecall(arch::In &request, Graph &graph);
+    static arch::Out questionRecall(const arch::In &request, Graph &graph);
 
     /**
      * 题目召回配置文件读取方法
