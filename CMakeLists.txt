@@ -44,3 +44,8 @@ endif ()
 add_executable(QuestionRecallServer question_recall_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h args.h)
 target_link_libraries (QuestionRecallServer glog::glog)
 target_link_libraries(QuestionRecallServer ${Boost_LIBRARIES})
+
+add_library(graphc Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h args.h)
+target_link_libraries (graphc glog::glog)
+target_link_libraries(graphc ${Boost_LIBRARIES})
+
