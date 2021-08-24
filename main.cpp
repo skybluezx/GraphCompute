@@ -17,6 +17,8 @@
 // 配置文件路径
 DEFINE_string(config_file_path, "", "配置文件路径 ");
 DEFINE_validator(config_file_path, &Util::validatePath);
+DEFINE_string(task_file_path, "", "任务文件路径 ");
+DEFINE_validator(task_file_path, &Util::validatePath);
 
 int main(int argc, char* argv[]) {
     /**
@@ -64,6 +66,7 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "图结果类型：" << resultType;
     LOG(INFO) << "结果输出路径：" << resultDirectoryPath;
     LOG(INFO) << "最大支持开始点个数：" << maxWalkBeginNodeCount;
+    google::FlushLogFiles(google::INFO);
 
     /**
      * 主逻辑部分
@@ -80,9 +83,7 @@ int main(int argc, char* argv[]) {
     }
 
     // 任务文件读取
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_multi_train.json";
-//    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_train.json";
-    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/test_train.json";
+    std::string json_file_path = FLAGS_task_file_path;
     std::ifstream jsonFile(json_file_path);
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();
@@ -102,8 +103,8 @@ int main(int argc, char* argv[]) {
     endTime = clock();
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-    std::cout << "[INFO] 任务执行时间：" << programSpan.count() << "秒" << std::endl;
-    std::cout << "[INFO] 任务执行时间：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "[INFO] 任务执行时间（自然时间）：" << programSpan.count() << "秒" << std::endl;
+    std::cout << "[INFO] 任务执行时间（CPU时间）：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
 
     google::ShutdownGoogleLogging();
 }

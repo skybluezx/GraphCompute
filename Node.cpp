@@ -11,6 +11,7 @@ Node::Node() = default;
 
 Node::Node(const std::string &id, const std::string &type)
         : id(id), type(type){
+    this->vistedCount = 0;
     this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     this->canVisitFlag = true;
 }
@@ -41,7 +42,9 @@ const std::vector<Node*> Node::getLinkedNodeMapList(const std::vector<std::strin
     std::vector<Node*> nodeList;
 
     for (auto i = 0; i < typeList.size(); ++i) {
-        nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
+        if (this->linkedNodeMapList.contains(typeList[i])) {
+            nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
+        }
     }
 
     return nodeList;

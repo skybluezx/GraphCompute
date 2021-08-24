@@ -15,6 +15,9 @@
 // 生效该宏定义将在编译阶段直接采用访问过的节点作为游走结果用于提升运行速度
 //#define ONLY_VISITED_NODE_RESULT
 
+// 是否启用空间节省模式
+//#define STORAGE_SAVING_MODE
+
 #include <vector>
 #include <string>
 

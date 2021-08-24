@@ -222,11 +222,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         }
 
         // 获取开始点ID
-        std::vector<std::vector<std::pair<std::string, double>>> beginNodeIDList ;
+        std::vector<std::map<std::string, double>> beginNodeIDList ;
         for (auto iter = commandObj.at("beginNodeID").as_array().begin(); iter != commandObj.at("beginNodeID").as_array().end(); ++iter) {
-            std::vector<std::pair<std::string, double>> idList;
+            std::map<std::string, double> idList;
             for (auto subIter = iter->as_array().begin(); subIter != iter->as_array().end(); ++subIter){
-                idList.emplace_back(std::pair<std::string, double>(subIter->as_string().c_str(), 0));
+                idList[subIter->as_object().at("id").as_string().c_str()] = subIter->as_object().at("weight").as_double();
             }
             beginNodeIDList.emplace_back(idList);
         }
@@ -298,24 +298,25 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         google::FlushLogFiles(google::INFO);
 
         if (isMergeMultiBeginNodeResult) {
-            // 遍历开始点类型
             unsigned int threadNum = 0;
             std::vector<unsigned int> threadNumList;
-            std::vector<std::pair<std::string, double>> currentBeginNodeIDList;
+            std::map<std::string, double> currentBeginNodeIDList;
+
+            // 遍历开始点类型
             for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
                 // 根据图支持的最大并行开始点个数遍历游走轮数
-                for (int j = 0; j < beginNodeIDList[i].size(); ++j) {
-                    currentBeginNodeIDList.emplace_back(beginNodeIDList[i][j]);
+                for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+                    currentBeginNodeIDList[iter->first] = iter->second;
                     threadNumList.emplace_back(threadNum);
                     threadNum++;
 
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
-                        std::vector<std::vector<std::pair<std::string, double>>> currentBeginNodeIDListGroup;
+                        std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
                         currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                         // 游走
                         graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
-                        graph.mergeResultList(threadNumList);
+                        graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
                         threadNum = 0;
                         threadNumList.clear();
@@ -324,66 +325,121 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                 }
             }
 
+            if (threadNum != 0) {
+                std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
+                currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
+
+                // 游走
+                graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
+                graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
+
+                threadNum = 0;
+                threadNumList.clear();
+                currentBeginNodeIDList.clear();
+            }
+
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-            threadNumList.clear();
-            threadNumList.emplace_back(graph.getMaxWalkBeginNodeCount());
-            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeIDListByVisitedCount(targetNodeType, threadNumList);
+            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeIDListByVisitedCount(targetNodeType, graph.getMaxWalkBeginNodeCount());
 
             // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
             unsigned int count = visitedCountTopN;
             if (count > result.size()) count = result.size();
             std::ofstream resultFile;
             resultFile.open(resultDirectoryPath + "/merged_result.dat");
-            for (auto m = 0; m < count; ++m) {
-                resultFile << result[m].first << ": " << result[m].second << std::endl;
+            for (auto i = 0; i < count; ++i) {
+                resultFile << result[i].first << ": " << result[i].second << std::endl;
             }
             resultFile.close();
         } else {
             // 遍历开始点类型
             for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
-                // 根据图支持的最大并行开始点个数遍历游走轮数
-                for (int j = 0; j < ceil(beginNodeIDList[i].size() / graph.getMaxWalkBeginNodeCount()); ++j) {
-                    std::vector<unsigned int> threadNumList;
-                    // 生成本轮的开始点列表
-                    std::vector<std::pair<std::string, double>> currentBeginNodeIDList;
-
-                    unsigned int threadNum = 0;
-                    for (int k = i * graph.getMaxWalkBeginNodeCount(); k < (i + 1) * graph.getMaxWalkBeginNodeCount(); ++k) {
-                        if (k < beginNodeIDList[i].size()) {
-                            currentBeginNodeIDList.emplace_back(beginNodeIDList[i][k]);
-                            threadNumList.emplace_back(threadNum);
-                            threadNum++;
-                        } else {
-                            break;
-                        }
+                if (boost::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
+                    boost::filesystem::directory_iterator directoryIterator(resultDirectoryPath + '/' + std::to_string(i));
+                    boost::filesystem::directory_iterator directoryIteratorEnd;
+                    for (; directoryIterator != directoryIteratorEnd; ++directoryIterator) {
+                        if (!boost::filesystem::is_regular_file(directoryIterator->status())) continue;
+                        std::string filename = directoryIterator->path().filename().string();
+                        boost::filesystem::remove(directoryIterator->path());
                     }
-                    std::vector<std::vector<std::pair<std::string, double>>> currentBeginNodeIDListGroup;
+                    boost::filesystem::remove(resultDirectoryPath + '/' + std::to_string(i));
+                }
+                boost::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
+
+                // 初始化当前线程索引为0
+                unsigned int threadNum = 0;
+                // 初始化线程索引数组
+                std::vector<unsigned int> threadNumList;
+                // 初始化每次游走开始点列表
+                std::map<std::string, double> currentBeginNodeIDList;
+                // 初始化每次游走的线程索引与开始点ID的对应关系
+                std::map<unsigned int, std::string> threadBeginNodeIDList;
+
+                // 根据图支持的最大并行开始点个数遍历游走轮数
+                for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+                    currentBeginNodeIDList[iter->first] = iter->second;
+                    threadBeginNodeIDList[threadNum] = iter->first;
+                    threadNumList.emplace_back(threadNum);
+                    threadNum++;
+
+                    if (threadNum == graph.getMaxWalkBeginNodeCount()) {
+                        std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
+                        currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
+
+                        // 游走
+                        graph.multiWalk(beginNodeTypeList,
+                                        currentBeginNodeIDListGroup,
+                                        stepDefineList,
+                                        auxiliaryEdgeList,
+                                        walkLengthRatioList,
+                                        restartRatioList,
+                                        totalStepCountList,
+                                        isSplitStepCountList);
+
+                        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+                        std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeType, threadNumList);
+                        for (auto j = 0; j < result.size(); ++j) {
+                            // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+                            unsigned int count = visitedCountTopN;
+                            if (count > result[j].size()) count = result[j].size();
+                            std::ofstream resultFile;
+                            resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat");
+                            for (auto k = 0; k < count; ++k) {
+                                resultFile << result[j][k].first << ": " << result[j][k].second << std::endl;
+                            }
+                            resultFile.close();
+                        }
+
+                        threadNum = 0;
+                        threadNumList.clear();
+                        currentBeginNodeIDList.clear();
+                    }
+                }
+
+                if (threadNum != 0) {
+                    std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
                     currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                     // 游走
                     graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
 
-                    if (boost::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
-                        boost::filesystem::remove(resultDirectoryPath + '/' + std::to_string(i));
-                    }
-                    boost::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
-
                     // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                    std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeTypeList[i], threadNumList);
+                    std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeType, threadNumList);
 
-                    for (auto k = 0; k < result.size(); ++k) {
+                    for (auto j = 0; j < result.size(); ++j) {
                         // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-                        unsigned int count = visitedCountTopNList[i];
-                        if (count > result.size()) count = result.size();
+                        unsigned int count = visitedCountTopN;
+                        if (count > result[j].size()) count = result[j].size();
                         std::ofstream resultFile;
-                        resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + beginNodeIDList[i][k] + "_result.dat");
-                        for (auto m = 0; m < count; ++m) {
-                            resultFile << result[k][m].first << ": " << result[k][m].second << std::endl;
+                        resultFile.open(resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat");
+                        for (auto k = 0; k < count; ++k) {
+                            resultFile << result[j][k].first << ": " << result[j][k].second << std::endl;
                         }
                         resultFile.close();
-
-                        threadNum++;
                     }
+
+                    threadNum = 0;
+                    threadNumList.clear();
+                    currentBeginNodeIDList.clear();
                 }
             }
         }
@@ -409,6 +465,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     beginNodeIDList.emplace_back(questionBeginNodeIDList);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // 多重游走
+    // Todo
     graph.multiWalk(Command::questionRecallBeginNodeTypeList,
                     beginNodeIDList,
                     Command::questionRecallStepDefineList,
@@ -426,13 +483,13 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     /**
      * 多路合并策略
      */
-
+    // Todo
     std::vector<unsigned int> threadNumList;
     for (auto i = 0; i < beginNodeIDList.size(); ++i) {
         threadNumList.emplace_back(i);
     }
     // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question", threadNumList);
+    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeIDListByVisitedCount("Question", threadNumList);
 
     /**
      * 后过滤策略

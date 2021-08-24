@@ -174,7 +174,7 @@ public:
                       const float &restartRatio,
                       const unsigned int &totalStepCount,
                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
-                      const bool &keepVisitedCount = false) const;
+                      const bool &keepVisitedCount = false);
 
     /**
      * 多重游走线程体（基于"知识点-题目-课件"步长定义的硬编码版本）
@@ -203,7 +203,7 @@ public:
      * @param keepVisitedCount
      */
     void multiWalk(const std::vector<std::string> &beginNodeTypeList,
-                   const std::vector<std::vector<std::pair<std::string, double>>> &beginNodeIDList,
+                   const std::vector<std::map<std::string, double>> &beginNodeIDList,
                    const std::vector<std::vector<std::string>> &stepDefineList,
                    const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                    const std::vector<float> &walkLengthRatioList,
@@ -319,7 +319,7 @@ public:
      * 合并策略目前仅支持访问次数最大合并，其他策略待实现
      * @param threadNumList 需要合并多路图操作线程编号列表
      */
-    void mergeResultList(const std::vector<unsigned int> &threadNumList);
+    void mergeResultList(const std::vector<unsigned int> &threadNumList, const unsigned int &targetThreadNum);
 private:
     /**
      * 成员属性
@@ -343,6 +343,8 @@ private:
      * 图中点的类型字典
      * Key为类型
      * Value为该类型对应的点个数
+     * Todo
+     * unsigned是否合适？
      */
     std::map<std::string, unsigned> nodeTypeCountList;
 

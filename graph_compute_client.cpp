@@ -15,7 +15,7 @@
 
 DEFINE_string(server_name, "", "服务端名称");
 DEFINE_string(json, "", "JSON文件路径（执行遍历或游走的参数JSON文件路径）");
-DEFINE_string(action, "", "动作名称（退出：EXIT 重置图状态：RESET）");
+DEFINE_string(action, "", "动作名称（退出：EXIT 重置图状态：RESET 恢复初始状态：RESET_ONLY_VISITED_COUNT）");
 
 int main(int argc, char* argv[]) {
     // 解析命令行参数

@@ -327,6 +327,8 @@ void Graph::walk(const std::string &beginNodeType,
             // 访问当前步的开始点
             currentNode->visit();
             this->insertResultList(currentNode);
+            // 本次已游走步长加1
+            length++;
 #ifdef INFO_LOG_OUTPUT
             LOG(INFO) << "[访问当前点] " << currentNode->getType() << ":" << currentNode->getID();
 #endif
@@ -381,16 +383,12 @@ void Graph::walk(const std::string &beginNodeType,
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[重启]";
 #endif
-                    i = walkingLength;
                     break;
                 }
             }
 
             // 获取当前点的下一个点
             currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
-
-            // 本次已游走步长加1
-            length++;
         }
 
         // 刷新当前步数
@@ -414,7 +412,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                          const float &restartRatio,
                          const unsigned int &totalStepCount,
                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
-                         const bool &keepVisitedCount) const {
+                         const bool &keepVisitedCount) {
     // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
     // 当前线程的随机引擎
     std::default_random_engine randomEngine;
@@ -467,7 +465,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     if (walkLengthRatio > 0 && walkLengthRatio <= 1) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
         // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
-        walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
+        walkingLength = beginNode->getLinkedNodeMapList(stepDefine).size() * walkLengthRatio;
     } else if (walkLengthRatio == 0) {
         walkingLength = totalStepCount;
     } else if (walkLengthRatio < 0) {
@@ -491,6 +489,8 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 #endif
             // 访问当前点
             nodeVisitedCountList.at(currentNode->getTypeID())++;
+            // 本次已游走步长加1
+            length++;
 #ifdef INFO_LOG_OUTPUT
             LOG(INFO) << "[访问当前点] " << currentNode->getType() << ":" << currentNode->getID();
 #endif
@@ -542,15 +542,12 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[重启]";
 #endif
-                    currentNode = beginNode;
                     break;
                 }
             }
 
             // 获取当前点的下一个点
             currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
-            // 本次已游走步长加1
-            length++;
         }
         // 刷新当前步数
         currentStepCount += length;
@@ -625,7 +622,7 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
 }
 
 void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
-                      const std::vector<std::vector<std::pair<std::string, double>>> &beginNodeIDList,
+                      const std::vector<std::map<std::string, double>> &beginNodeIDList,
                       const std::vector<std::vector<std::string>> &stepDefineList,
                       const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                       const std::vector<float> &walkLengthRatioList,
@@ -644,65 +641,80 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
         LOG(INFO) << "[游走组" << i << "] ";
         LOG(INFO) << "[计算组内节点游走总步数]";
 #endif
-//        std::map<std::string, unsigned int> stepCountList;
-//        if (isSplitStepCountList[i]) {
-//            // 开始点度数权重
-//            // first为起点自身权重
-//            // second为起点度数权重
-//            std::map<std::string, std::pair<double, float>> weightList;
-//            // 开始点度数权重之和
-//            float s_sum;
-//            // 遍历游走组内的多个起点
-//            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
-//                std::string secondNodeType = stepDefineList[i][1 % stepDefineList[i].size()];
-//
-//                // 计算起点度数权重
-//                if (this->nodeDegreeList.contains(beginNodeTypeList[i] + ":" + iter->first)) {
-//                    unsigned int degree = this->nodeDegreeList.at(beginNodeTypeList[i] + ":" + iter->first).at(secondNodeType);
-//                    float s_j = degree * (this->nodeTypeMaxDegreeList[beginNodeTypeList[i]][secondNodeType] - std::log(degree));
-//                    weightList[iter->first] = std::pair<double, float>(iter->second, s_j);
-//                    s_sum += s_j;
-//                } else {
-//                    weightList[iter->first] = std::pair<double, float>(iter->second, 0);;
-//                }
-//            }
-//
-//            for (auto iter = weightList.begin(); iter != weightList.end(); ++iter) {
-//                stepCountList[iter->first] = weightList[iter->first].first * (totalStepCountList[i] * (weightList[iter->first].second / s_sum));
-//#ifdef INFO_LOG_OUTPUT
-//                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
-//#endif
-//            }
-//#ifdef INFO_LOG_OUTPUT
-//            LOG(INFO) << "[计算完成]";
-//            LOG(INFO) << "[启动组内游走]";
-//#endif
-//        } else {
-//            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
-//                stepCountList[iter->first] = totalStepCountList[i];
-//#ifdef INFO_LOG_OUTPUT
-//                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
-//#endif
-//            }
-//        }
+        std::map<std::string, unsigned int> stepCountList;
+        if (isSplitStepCountList[i]) {
+            // 开始点度数权重
+            // first为起点自身权重
+            // second为起点度数权重
+            std::map<std::string, std::pair<double, float>> weightList;
+            // 开始点度数权重之和
+            float s_sum;
+            // 遍历游走组内的多个起点
+            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+                std::string secondNodeType = stepDefineList[i][1 % stepDefineList[i].size()];
 
+                // 计算起点度数权重
+                if (this->nodeDegreeList.contains(beginNodeTypeList[i] + ":" + iter->first)) {
+                    unsigned int degree = this->nodeDegreeList.at(beginNodeTypeList[i] + ":" + iter->first).at(secondNodeType);
+                    float s_j = degree * (this->nodeTypeMaxDegreeList[beginNodeTypeList[i]][secondNodeType] - std::log(degree));
+                    weightList[iter->first] = std::pair<double, float>(iter->second, s_j);
+                    s_sum += s_j;
+                } else {
+                    weightList[iter->first] = std::pair<double, float>(iter->second, 0);;
+                }
+            }
+
+            for (auto iter = weightList.begin(); iter != weightList.end(); ++iter) {
+                stepCountList[iter->first] = weightList[iter->first].first * (totalStepCountList[i] * (weightList[iter->first].second / s_sum));
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
+#endif
+            }
+#ifdef INFO_LOG_OUTPUT
+            LOG(INFO) << "[计算完成]";
+            LOG(INFO) << "[启动组内游走]";
+#endif
+        } else {
+            for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+                stepCountList[iter->first] = totalStepCountList[i];
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "[组内节点" << iter->first << "总步数] " << stepCountList[iter->first];
+#endif
+            }
+        }
+
+        // 遍历全部开始点启动线程
         for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+            // 判断当前线程数是否已达到最大线程数
             if (threadNum == this->maxWalkBeginNodeCount) {
+                // 达到则退出
                 break;
             }            
 
             threadList.emplace_back(
-                    std::thread(&Graph::walkOnThread1, this,
+                    std::thread(&Graph::walkOnThread, this,
                                 std::cref(beginNodeTypeList[i]),
                                 std::cref(iter->first),
+                                std::cref(stepDefineList[i]),
+                                std::cref(auxiliaryEdgeList[i]),
+                                std::cref(walkLengthRatioList[i]),
                                 std::cref(restartRatioList[i]),
-                                //std::cref(stepCountList[iter->first]),
-                                std::cref(totalStepCountList[i]),
-                                std::ref(this->visitedNodeTypeIDCountList[threadNum])));
+                                std::cref(stepCountList[iter->first]),
+                                std::ref(this->visitedNodeTypeIDCountList[threadNum]),
+                                std::cref(keepVisitedCount))
+//                    std::thread(&Graph::walkOnThread1, this,
+//                                std::cref(beginNodeTypeList[i]),
+//                                std::cref(iter->first),
+//                                std::cref(restartRatioList[i]),
+//                                std::cref(stepCountList[iter->first]),
+//                                std::ref(this->visitedNodeTypeIDCountList[threadNum]))
+                                );
             threadNum++;
         }
-        
+
+        // 判断当前线程数是否已达到最大线程数
         if (threadNum == this->maxWalkBeginNodeCount) {
+            // 达到则退出
             break;
         }
 
@@ -824,7 +836,8 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
 
     const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
     nodeVisitedCountList.reserve(typeNodeList.size());
-    
+
+    // 访问次数最大的合并策略
     int maxCount;
     for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
         maxCount = 0;
@@ -833,9 +846,7 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
                 maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID());
             }
         }
-        if (maxCount > 0) {
-            nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
-        }
+        nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     
@@ -1013,7 +1024,6 @@ void Graph::flush() {
             }
             // 将该记录有图中全部节点初始访问次数的HashMap放入列表
             this->visitedNodeTypeIDCountList.emplace_back(countMap);
-            std::cout << this->visitedNodeTypeIDCountList.size() << std::endl;
         }
     } else {
         this->walkingSequence.clear();
@@ -1161,17 +1171,20 @@ void Graph::insertResultList(Node* &node, const unsigned int &threadNum) {
 #endif
 }
 
-void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList) {
+void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList, const unsigned int &targetThreadNum) {
     // 定义最大访问次数
     int maxCount;
     // 遍历图中全部节点
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+#ifdef STORAGE_SAVING_MODE
+        // 判断当前节点是否可访问
         if (!iter->second->canVisit()) {
             continue;
         }
+#endif
 
         // 初始化当前点的最大访问次数为0
-        maxCount = this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].at(iter->first);
+        maxCount = this->visitedNodeTypeIDCountList[targetThreadNum].at(iter->first);
         // 遍历多路图操作对应的线程编号
         for (auto i = 0; i < threadNumList.size(); ++i) {
             // 比较当前点在当前路图操作中的访问次数是否最大
@@ -1180,11 +1193,6 @@ void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList) {
             }
         }
         // 记录当前点的最大访问次数
-        this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].at(iter->first) = maxCount;
-    }
-
-    // 清空已合并的图操作结果列表
-    for (auto i = 0; i < threadNumList.size(); ++i) {
-        this->visitedNodeTypeIDCountList[threadNumList[i]].clear();
+        this->visitedNodeTypeIDCountList[targetThreadNum].at(iter->first) = maxCount;
     }
 }
