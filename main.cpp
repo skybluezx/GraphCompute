@@ -1,12 +1,10 @@
 //
 // Created by 翟霄 on 2021/8/3.
-// 用于图计算框架的测试开始
+// 图计算框架的
 // 避免C/S模式导致繁琐的开发与测试
 //
 #include <iostream>
 #include <string>
-#include <sstream>
-#include <fstream>
 
 #include "Util.h"
 #include "Graph.h"
@@ -52,16 +50,36 @@ int main(int argc, char* argv[]) {
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
     std::string resultType;
     Util::getConfig("Input", "result_type", resultType);
+    // 读取计算结果输出路径
+    std::string resultDirectoryPath;
+    Util::getConfig("Path", "result_directory", resultDirectoryPath);
+    int maxWalkBeginNodeCount;
+    Util::getConfig("Walk", "max_walk_begin_node_count", maxWalkBeginNodeCount);
+
+    LOG(INFO) << "配置文件路径：" << Util::configFilePath;
+    LOG(INFO) << "日志输出路径：" << logDirectory;
+    LOG(INFO) << "日志输出等级：" << logLevel;
+    LOG(INFO) << "图定义路径：" << graphDefineDirectory;
+    LOG(INFO) << "读取边数：" << readEdgeCount;
+    LOG(INFO) << "图结果类型：" << resultType;
+    LOG(INFO) << "结果输出路径：" << resultDirectoryPath;
+    LOG(INFO) << "最大支持开始点个数：" << maxWalkBeginNodeCount;
+
+    /**
+     * 主逻辑部分
+     */
+
     // 建立图
-    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount);
+    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount, maxWalkBeginNodeCount);
+    // 刷新图
     graph.flush();
     // 输出图的概要
     auto nodeTypeCountList = graph.getNodeTypeCountList();
     for (auto iter = nodeTypeCountList.begin(); iter != nodeTypeCountList.end(); ++iter) {
         LOG(INFO) << iter->first << ":" << iter->second;
     }
-    google::FlushLogFiles(google::INFO);
 
+    // 任务文件读取
 //    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_multi_train.json";
 //    std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/main_train.json";
     std::string json_file_path = "/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/task/test_train.json";
@@ -69,25 +87,23 @@ int main(int argc, char* argv[]) {
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();
     std::string jsonString(buffer.str());
-    std::cout << "执行命令：" << std::endl;
+    std::cout << "执行任务：" << std::endl;
     std::cout << jsonString << std::endl;
 
-    // 读取计算结果输出路径
-    std::string resultDirectoryPath;
-    Util::getConfig("Path", "result_directory", resultDirectoryPath);
-
+    // 设置任务开始时间
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     clock_t startTime, endTime;
     startTime = clock();//计时开始
 
-    // 执行命令
+    // 执行任务
     Command::execute(graph, jsonString, resultDirectoryPath);
 
-    endTime = clock();//计时结束
+    // 设置任务结束时间
+    endTime = clock();
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-    std::cout << "[INFO] 命令执行时间：" << programSpan.count() << "秒" << std::endl;
-    std::cout << "[INFO] 命令执行时间：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "[INFO] 任务执行时间：" << programSpan.count() << "秒" << std::endl;
+    std::cout << "[INFO] 任务执行时间：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
 
     google::ShutdownGoogleLogging();
 }

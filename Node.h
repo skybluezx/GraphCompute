@@ -51,10 +51,17 @@ public:
     const std::vector<std::pair<Node*, bool>> &getLinkedNodeList() const;
 
     /**
-     * 返回该点邻接点分类型列表
-     * @return 点对象中邻接点分类型列表的引用
+     * 返回该点的分类型邻接表
+     * @return
      */
     const std::unordered_map<std::string, std::pair<std::vector<Node *>, std::uniform_int_distribution<unsigned>>> &getLinkedNodeMapList() const;
+
+    /**
+     * 返回该点指定若干类型的合并邻接表
+     * @param typeList
+     * @return
+     */
+    const std::vector<Node*> getLinkedNodeMapList(const std::vector<std::string> &typeList) const;
 
     /**
      * 增加边
@@ -108,15 +115,36 @@ public:
     int getVisitedCount() const;
 
     /**
-     * 获得当前点的下一个连接点
-     * @param strategy 边选择策略
-     * @param type 边类型
-     * @return 当前点下一个连接点的指针常量（即指针不能重指向其他点）
+     * 获得当前点指定类型的邻接点
+     * @param strategy  边选择策略
+     * @param nextNode  邻接点指针
+     * @param type      邻接点类型
+     * @return
      * 返回值为指针常量，说明指针指向内存无需调用者负责，同时也不允许通过其他方式修改指针指向，否则原指针指向内容将可能存在泄漏风险
      */
     bool getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::string &type);
-    bool getNextRandomLinkedNode(Node *&nextNode, const std::string &type);
+    /**
+     * 获得当前点指定多个类型的邻接点
+     * @param strategy  边选择策略
+     * @param nextNode  邻接点指针
+     * @param typeList  邻接点类型数组
+     * @return
+     */
     bool getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::vector<std::string> &typeList);
+    /**
+     * 随机获取指定类型的邻接点
+     * @param nextNode  邻接点指针
+     * @param type      邻接点类型
+     * @return
+     */
+    bool getNextRandomLinkedNode(Node *&nextNode, const std::string &type);
+    /**
+     * 随机获取多个类型的邻接点
+     * @param nextNode  邻接点指针
+     * @param typeList  邻接点类型数组
+     * @return
+     */
+    bool getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList);
 
     /**
      * 重置图遍历/游走的状态信息
@@ -191,7 +219,12 @@ private:
                                   const EdgeChooseStrategy &strategy,
                                   std::default_random_engine &randomEngine,
                                   std::uniform_int_distribution<unsigned> &randomDistribution);
-
+    /**
+     * 具体边选择策略的选边方法
+     * @param nodeList
+     * @param nextNode
+     * @return
+     */
     static bool getNextFirstLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode);
     static bool getNextFirstNoVisitedLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode);
     static bool getNextLastLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode);

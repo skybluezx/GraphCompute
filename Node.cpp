@@ -37,6 +37,16 @@ const std::unordered_map<std::string, std::pair<std::vector<Node *>, std::unifor
     return this->linkedNodeMapList;
 }
 
+const std::vector<Node*> Node::getLinkedNodeMapList(const std::vector<std::string> &typeList) const {
+    std::vector<Node*> nodeList;
+
+    for (auto i = 0; i < typeList.size(); ++i) {
+        nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
+    }
+
+    return nodeList;
+}
+
 void Node::addEdge(Node *const &node) {
     // 当前框架不支持多重边
     // 判断待添加边对应的连接点是否已存在
@@ -127,6 +137,15 @@ bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode
     }
 }
 
+bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::vector<std::string> &typeList) {
+    // 链表合并选择为O(n)，n为设置类型个数，设计在内存中创建合并后链表，也会带来耗时
+    // 边选择策略为O(m)，其中m为4（因为目前有四种边选择策略）
+    nextNode = nullptr;
+    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
+    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
+    return Node::getNextLinkedNode(nodeList, nextNode, strategy, this->randomEngine, randomDistribution);
+}
+
 bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type) {
     nextNode = nullptr;
     if (this->linkedNodeMapList.contains(type)) {
@@ -137,17 +156,11 @@ bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type) {
     }
 }
 
-bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::vector<std::string> &typeList) {
-    // 链表合并选择为O(n)，n为设置类型个数，设计在内存中创建合并后链表，也会带来耗时
-    // 边选择策略为O(m)，其中m为4（因为目前有四种边选择策略）
+bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList) {
     nextNode = nullptr;
-    std::vector<Node*> nodeList;
-    for (auto i = 0; i < typeList.size(); ++i) {
-        nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(type).first.begin(), this->linkedNodeMapList.at(type).first.end());
-    }
-
+    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
     std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
-    return Node::getNextLinkedNode(nodeList, nextNode, strategy, this->randomEngine, randomDistribution);
+    return Node::getNextRandomLinkedNode(nodeList, nextNode, this->randomEngine, randomDistribution);
 }
 
 void Node::reset(const bool &onlyVisitedCount) {

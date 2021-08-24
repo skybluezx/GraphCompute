@@ -17,9 +17,13 @@
 #include "Util.h"
 #include "Node.h"
 
-Graph::Graph() = default;
-
 Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount, const int &maxWalkBeginNodeCount) : resultType(resultType), maxWalkBeginNodeCount(maxWalkBeginNodeCount) {
+    /**
+     * 随机数生成的相关数据结构初始化
+     * 该部分随机数结构仅用于单线程模式下重启策略中随机数的生成
+     * - 游走过程中用于选择下一个点的随机数生成由每个Node中的随机数生成机制负责
+     * - 多线程模式下，不管是重启策略，还是下一个节点的选择，涉及到的随机数均有线程体负责生成，不复用主线程的任何结构
+     */
     // 初始化随机引擎（目前用于游走过程中的重启策略）
     this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     // 初始化随机数分布（目前初始化为0到1之间的实数）
@@ -43,7 +47,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
             if (std::filesystem::is_regular_file(entry)) {
                 std::string filePathString = entry.path();
                 // 不读取"."开头的文件
-                // 避免读取临时文件
+                // 避免读取临时文件，也可用于文件的选择
                 boost::filesystem::path filePath(filePathString);
                 if (filePath.filename().string()[0] == '.') {
                     LOG(INFO) << "跳过文件：" << filePath.filename().string();
@@ -122,6 +126,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
 
                             // 累加当前已读取总边数
                             currentEdgeCount++;
+
 #ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
 #endif
@@ -147,27 +152,6 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
         }
         LOG(INFO) << "图加载完毕！";
     }
-#ifndef ONLY_VISITED_NODE_RESULT
-    if (this->resultType == "visited_count") {
-        for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
-            std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
-            for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-                countMap[iter->first] = 0;
-            }
-            this->visitedNodeTypeIDCountList.emplace_back(countMap);
-        }
-    } else {
-        this->walkingSequence[0] = std::vector<std::string>();
-    }
-#else
-    for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
-        std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
-        for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-            countMap[iter->first] = 0;
-        }
-        this->visitedNodeTypeIDCountList.emplace_back(countMap);
-    }
-#endif
 }
 
 Graph::~Graph() {
@@ -183,6 +167,10 @@ Graph::~Graph() {
 
 const std::map<const std::string, Node *const> &Graph::getNodeList() const {
     return this->nodeList;
+}
+
+const int &Graph::getMaxWalkBeginNodeCount() const {
+    return this->maxWalkBeginNodeCount;
 }
 
 const std::map<const std::string, std::vector<Node *>> &Graph::getTypeNodeList() const {
@@ -260,11 +248,15 @@ void Graph::walk(const std::string &beginNodeType,
                  const std::map<std::string, std::string> &auxiliaryEdge,
                  const float &walkLengthRatio,
                  const float &restartRatio,
-                 const unsigned int &totalStepCount) {
+                 const unsigned int &totalStepCount,
+                 const bool &keepVisitedCount) {
+    if (!keepVisitedCount) {
+        // 清空图中全部节点的状态
+        this->reset();
+    }
+
     // 清空游走结果列表
     this->clearResultList();
-    // 清空图中全部节点的状态
-    this->reset();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -277,7 +269,7 @@ void Graph::walk(const std::string &beginNodeType,
 
     // 检查步长定义是否正确
     if (!stepDefine.empty()) {
-        if (beginNode->getType() != stepDefine[0]) {
+        if (std::find(stepDefine.begin(), stepDefine.end(), beginNode->getType()) == stepDefine.end()) {
             // 开始点类型不匹配游走步类型定义
             LOG(ERROR) << "开始点类型不匹配游走步类型定义！";
             return;
@@ -288,6 +280,14 @@ void Graph::walk(const std::string &beginNodeType,
         return;
     }
 
+    // 判断开始点是否是孤立点
+    if (beginNode->getLinkedNodeMapList(stepDefine).empty()) {
+        // 若是孤立点则访问该开始点后返回
+        beginNode->visit();
+        this->insertResultList(beginNode);
+        return;
+    }
+
     // 定义开始点指针
     Node *currentNode;
     // 初始化当前已完成步数为0
@@ -295,134 +295,102 @@ void Graph::walk(const std::string &beginNodeType,
     // 定义当前游走的步长
     int walkingLength;
 
-    int length;
-
     // 计算一次游走的长度
-    if (walkLengthRatio >= 0) {
+    if (walkLengthRatio > 0 && walkLengthRatio <= 1) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
         // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
         walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
-    } else {
+    } else if (walkLengthRatio == 0) {
+        // 单次游走步长定义为0则不限制单次游走步长
+        walkingLength = totalStepCount;
+    } else if (walkLengthRatio < 0) {
         // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
         walkingLength = 0 - walkLengthRatio;
+    } else {
+        LOG(ERROR) << "单次游走步长未定义！";
     }
 
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
-
 #ifdef INFO_LOG_OUTPUT
         LOG(INFO) << "[新游走] 当前总步数/设置总步数：" << currentStepCount << "/" << totalStepCount;
 #endif
-        // 访问开始点
+        // 回到开始点
         currentNode = beginNode;
 
-        // 遍历步长
-        length = 0;
+        // 初始化一次游走的步长
+        int length = 0;
         for (int i = 0; i < walkingLength; ++i) {
 #ifdef INFO_LOG_OUTPUT
-            LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << i + 1 << "/" << walkingLength;
+            LOG(INFO) << "[向前一步] 本次游走总步数/步长：" << i + 1 << "/" << walkingLength;
+#endif
+            // 访问当前步的开始点
+            currentNode->visit();
+            this->insertResultList(currentNode);
+#ifdef INFO_LOG_OUTPUT
+            LOG(INFO) << "[访问当前点] " << currentNode->getType() << ":" << currentNode->getID();
 #endif
 
-            // 遍历步的组成
-            // 从开始点开始遍历
-            auto j = 0;
-            while (j < stepDefine.size()) {
-                // 判断当前点是否不存在
-                if (currentNode != nullptr) {
-                    // 访问当前步的开始点
-                    currentNode->visit();
-                    this->insertResultList(currentNode);
+            // 访问辅助边
+            // Todo
+            // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
+            // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
+            if (auxiliaryEdge.contains(currentNode->getType())) {
+                Node *auxiliaryNode;
+                currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
+                if (auxiliaryNode != nullptr) {
+                    // 存在辅助点则访问
+                    auxiliaryNode->visit();
+                    this->insertResultList(auxiliaryNode);
 #ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[访问当前点] " << stepDefine[j] << ":" << currentNode->getID();
+                    LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
 #endif
-
-                    // 访问辅助边
-                    // Todo
-                    // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
-                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
-                    if (auxiliaryEdge.contains(currentNode->getType())) {
-                        Node *auxiliaryNode;
-                        currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
-                        if (auxiliaryNode != nullptr) {
-                            // 存在辅助点则访问
-                            auxiliaryNode->visit();
-                            this->insertResultList(auxiliaryNode);
+                    // 从辅助点返回
+                    // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
+                    auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
+                    if (currentNode != nullptr) {
+                        currentNode->visit();
+                        this->insertResultList(currentNode);
 #ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
+                        LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
 #endif
-                            // 从辅助点返回
-                            // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                            auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
-                            if (currentNode != nullptr) {
-                                currentNode->visit();
-                                this->insertResultList(currentNode);
-#ifdef INFO_LOG_OUTPUT
-                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
-#endif
-                            } else {
-#ifdef INFO_LOG_OUTPUT
-                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
-#endif
-                            }
-                        } else {
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "当前点无辅助边！";
-#endif
-                        }
                     } else {
 #ifdef INFO_LOG_OUTPUT
-                        LOG(INFO) << "当前种类的点不存在辅助边！";
+                        LOG(ERROR) << "辅助点返回出错！未获取返回点！";
 #endif
                     }
-
-                    // 判断重启概率是否大于零
-                    if (restartRatio > 0) {
-                        // 重启概率大于0时启动重启策略
-                        // 生成0-1之间的随机数
-                        // 判断随机数是否小于重启概率
-                        if (this->randomDistribution(this->randomEngine) < restartRatio) {
-                            // 小于则将当前游走的步数置为最大步数退出本次迭代
-                            // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "[重启]";
-#endif
-                            i = walkingLength;
-                            break;
-                        }
-                    }
-
-                    // 判断当前是否完成一步
-                    if (j < stepDefine.size() - 1) {
-                        // 尚未完成一步继续游走至步长定义中的下一步
-                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[j + 1]);
-                    } else {
-                        // 已完成一步游走至下一步的开始点
-                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
-#ifdef INFO_LOG_OUTPUT
-                        LOG(INFO) << "[完成一步] 前进至下一步的开始节点";
-#endif
-                    }
-
-                    // 步长定义的索引增1
-                    j++;
                 } else {
-                    // 若不存在则上一个节点没有步长定义中的下一个节点，或者当前步最后一个节点不连接步长定义中的开始点，导致无路可走
 #ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[访问失败] 不存在步长定义中指定类型的当前点！";
+                    LOG(INFO) << "当前点无辅助边！";
 #endif
+                }
+            } else {
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "当前种类的点不存在辅助边！";
+#endif
+            }
+
+            // 判断重启概率是否大于零
+            if (restartRatio > 0) {
+                // 重启概率大于0时启动重启策略
+                // 生成0-1之间的随机数
+                // 判断随机数是否小于重启概率
+                if (this->randomDistribution(this->randomEngine) < restartRatio) {
+                    // 小于则将当前游走的步数置为最大步数退出本次迭代
+                    // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
+#ifdef INFO_LOG_OUTPUT
+                    LOG(INFO) << "[重启]";
+#endif
+                    i = walkingLength;
                     break;
                 }
             }
 
-            length++;
+            // 获取当前点的下一个点
+            currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
 
-            // 当前游走到的点已经没有步长定义中指定类型的连接点
-            if (currentNode == nullptr) {
-#ifdef INFO_LOG_OUTPUT
-                LOG(INFO) << "[本次迭代已提前结束] 没有进一步开始节点供游走！";
-#endif
-                break;
-            }
+            // 本次已游走步长加1
+            length++;
         }
 
         // 刷新当前步数
@@ -435,8 +403,9 @@ void Graph::walk(const Node &beginNode,
                  const std::map<std::string, std::string> &auxiliaryEdge,
                  const float &walkLengthRatio,
                  const float &restartRatio,
-                 const unsigned int &totalStepCount) {
-    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount);
+                 const unsigned int &totalStepCount,
+                 const bool &keepVisitedCount) {
+    this->walk(beginNode.getType(), beginNode.getID(), stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount, keepVisitedCount);
 }
 
 void Graph::walkOnThread(const std::string &beginNodeType, const std::string &beginNodeID,
@@ -444,22 +413,23 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                          const std::map<std::string, std::string> &auxiliaryEdge, const float &walkLengthRatio,
                          const float &restartRatio,
                          const unsigned int &totalStepCount,
-                         std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj,
-                         const unsigned int &threadNum,
+                         std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
                          const bool &keepVisitedCount) const {
-    // 初始化随机引擎（目前用于游走过程中的重启策略）
+    // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
+    // 当前线程的随机引擎
     std::default_random_engine randomEngine;
     randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    // 初始化随机数分布（目前初始化为0到1之间的实数）
-    std::uniform_real_distribution<double> randomDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+    // 初始化0到1之间实数的随机数分布（用于重启策略）
+    std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
 
-    std::unordered_map<std::string, unsigned int> nodeVisitedCountList;
-    nodeVisitedCountList.reserve(this->nodeList.size());
+    // 清空访问次数字典
+    for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
+        iter->second = 0;
+    }
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
         LOG(ERROR) << "开始点不存在！" << beginNodeType + ":" + beginNodeID;
-        promiseObj.set_value(nodeVisitedCountList);
         return;
     }
 
@@ -468,16 +438,21 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 
     // 检查步长定义是否正确
     if (!stepDefine.empty()) {
-        if (beginNode->getType() != stepDefine[0]) {
+        if (std::find(stepDefine.begin(), stepDefine.end(), beginNode->getType()) == stepDefine.end()) {
             // 开始点类型不匹配游走步类型定义
             LOG(ERROR) << "开始点类型不匹配游走步类型定义！";
-            promiseObj.set_value(nodeVisitedCountList);
             return;
         }
     } else {
         // 步长未定义
         LOG(ERROR) << "游走步未定义！";
-        promiseObj.set_value(nodeVisitedCountList);
+        return;
+    }
+
+    // 判断开始点是否是孤立点
+    if (beginNode->getLinkedNodeMapList(stepDefine).empty()) {
+        // 若是孤立点则访问该开始点后返回
+        nodeVisitedCountList[beginNode->getTypeID()] = 1;
         return;
     }
 
@@ -488,21 +463,20 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     // 定义当前游走的步长
     int walkingLength;
 
-    int length;
-
     // 计算一次游走的长度
-    if (walkLengthRatio >= 0) {
+    if (walkLengthRatio > 0 && walkLengthRatio <= 1) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
         // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
         walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
-    } else {
+    } else if (walkLengthRatio == 0) {
+        walkingLength = totalStepCount;
+    } else if (walkLengthRatio < 0) {
         // 如果步长参数小于0则取该参数的绝对值作为本次游走的步长
         walkingLength = 0 - walkLengthRatio;
     }
 
     // 当游走步数小于总步数时继续游走
     while (currentStepCount < totalStepCount) {
-
 #ifdef INFO_LOG_OUTPUT
         LOG(INFO) << "[新游走] 当前总步数/设置总步数：" << currentStepCount << "/" << totalStepCount;
 #endif
@@ -510,143 +484,90 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
         currentNode = beginNode;
 
         // 遍历步长
-        length = 0;
+        int length = 0;
         for (int i = 0; i < walkingLength; ++i) {
 #ifdef INFO_LOG_OUTPUT
-            LOG(INFO) << "[向前一步] 当前迭代总步数/步长：" << i + 1 << "/" << walkingLength;
+            LOG(INFO) << "[向前一步] 本次游走总步数/步长：" << i + 1 << "/" << walkingLength;
 #endif
-
-            // 遍历步的组成
-            // 从开始点开始遍历
-            auto j = 0;
-            while (j < stepDefine.size()) {
-                // 判断当前点是否不存在
-                if (currentNode != nullptr) {
-//                    // 访问当前步的开始点
-//                    if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
-//                        nodeVisitedCountList[currentNode->getTypeID()] = 1;
-//                    } else {
-//                        nodeVisitedCountList.at(currentNode->getTypeID())++;
-//                    }
+            // 访问当前点
+            nodeVisitedCountList.at(currentNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[访问当前点] " << stepDefine[j] << ":" << currentNode->getID();
+            LOG(INFO) << "[访问当前点] " << currentNode->getType() << ":" << currentNode->getID();
 #endif
-
-//                    // 访问辅助边
-//                    // Todo
-//                    // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
-//                    // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
-//                    if (auxiliaryEdge.contains(currentNode->getType())) {
-//                        Node *auxiliaryNode;
-//                        currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
-//                        if (auxiliaryNode != nullptr) {
-//                            // 存在辅助点则访问
-//                            if (!nodeVisitedCountList.contains(auxiliaryNode->getTypeID())) {
-//                                nodeVisitedCountList[auxiliaryNode->getTypeID()] = 1;
-//                            } else {
-//                                nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
-//                            }
-//#ifdef INFO_LOG_OUTPUT
-//                            LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
-//#endif
-//                            // 从辅助点返回
-//                            // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-//                            auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
-//                            if (currentNode != nullptr) {
-//                                if (!nodeVisitedCountList.contains(currentNode->getTypeID())) {
-//                                    nodeVisitedCountList[currentNode->getTypeID()] = 1;
-//                                } else {
-//                                    nodeVisitedCountList.at(currentNode->getTypeID())++;
-//
-//                                }
-//#ifdef INFO_LOG_OUTPUT
-//                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
-//#endif
-//                            } else {
-//#ifdef INFO_LOG_OUTPUT
-//                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
-//#endif
-//                            }
-//                        } else {
-//#ifdef INFO_LOG_OUTPUT
-//                            LOG(INFO) << "当前点无辅助边！";
-//#endif
-//                        }
-//                    } else {
-//#ifdef INFO_LOG_OUTPUT
-//                        LOG(INFO) << "当前种类的点不存在辅助边！";
-//#endif
-//                    }
-
-//                    // 判断重启概率是否大于零
-//                    if (restartRatio > 0) {
-//                        // 重启概率大于0时启动重启策略
-//                        // 生成0-1之间的随机数
-//                        // 判断随机数是否小于重启概率
-//                        if (randomDistribution(randomEngine) < restartRatio) {
-//                            // 小于则将当前游走的步数置为最大步数退出本次迭代
-//                            // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
-//#ifdef INFO_LOG_OUTPUT
-//                            LOG(INFO) << "[重启]";
-//#endif
-//                            i = walkingLength;
-//                            break;
-//                        }
-//                    }
-
-//                    // 判断当前是否完成一步
-//                    if (j < stepDefine.size() - 1) {
-//                        // 尚未完成一步继续游走至步长定义中的下一步
-//                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[j + 1]);
-//                    } else {
-//                        // 已完成一步游走至下一步的开始点
-//                        currentNode->getNextRandomLinkedNode(currentNode, stepDefine[0]);
-//#ifdef INFO_LOG_OUTPUT
-//                        LOG(INFO) << "[完成一步] 前进至下一步的开始节点";
-//#endif
-//                    }
-
-                    // 步长定义的索引增1
-                    j++;
+            // 访问辅助边
+            // Todo
+            // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
+            // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
+            if (auxiliaryEdge.contains(currentNode->getType())) {
+                Node *auxiliaryNode;
+                currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
+                if (auxiliaryNode != nullptr) {
+                    // 存在辅助点则访问
+                    nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
+#ifdef INFO_LOG_OUTPUT
+                    LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
+#endif
+                    // 从辅助点返回
+                    // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
+                    auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
+                    if (currentNode != nullptr) {
+                        nodeVisitedCountList.at(currentNode->getTypeID())++;
+#ifdef INFO_LOG_OUTPUT
+                        LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+#endif
+                    } else {
+#ifdef INFO_LOG_OUTPUT
+                        LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+#endif
+                    }
                 } else {
-                    // 若不存在则上一个节点没有步长定义中的下一个节点，或者当前步最后一个节点不连接步长定义中的开始点，导致无路可走
 #ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[访问失败] 不存在步长定义中指定类型的当前点！";
+                    LOG(INFO) << "当前点无辅助边！";
 #endif
+                }
+            } else {
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "当前种类的点不存在辅助边！";
+#endif
+            }
+
+            // 判断重启概率是否大于零
+            if (restartRatio > 0) {
+                // 重启概率大于0时启动重启策略
+                // 生成0-1之间的随机数
+                // 判断随机数是否小于重启概率
+                if (randomDoubleDistribution(randomEngine) < restartRatio) {
+                    // 小于则将当前游走的步数置为最大步数退出本次迭代
+                    // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
+#ifdef INFO_LOG_OUTPUT
+                    LOG(INFO) << "[重启]";
+#endif
+                    currentNode = beginNode;
                     break;
                 }
             }
 
-            // 当前游走到的点已经没有步长定义中指定类型的连接点
-            if (currentNode == nullptr) {
-#ifdef INFO_LOG_OUTPUT
-                LOG(INFO) << "[本次迭代已提前结束] 没有进一步开始节点供游走！";
-#endif
-                break;
-            }
-
+            // 获取当前点的下一个点
+            currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
+            // 本次已游走步长加1
             length++;
         }
-
         // 刷新当前步数
         currentStepCount += length;
     }
-
-    promiseObj.set_value(nodeVisitedCountList);
 }
 
 void Graph::walkOnThread1(const std::string &beginNodeType,
                           const std::string &beginNodeID,
                           const float &restartRatio,
                           const unsigned int &totalStepCount,
-                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList
-                          //std::promise<std::unordered_map<std::string, unsigned int>>&& promiseObj
-                          ) {
+                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList) {
     // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
     // 当前线程的随机引擎
     std::default_random_engine randomEngine;
     randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_real_distribution<double> randomDoubleDistribution;
+    // 初始化0到1之间实数的随机数分布（用于重启策略）
+    std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
     
     // 清空访问次数字典
     for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
@@ -704,7 +625,7 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
 }
 
 void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
-                      const std::vector<std::map<std::string, double>> &beginNodeIDList,
+                      const std::vector<std::vector<std::pair<std::string, double>>> &beginNodeIDList,
                       const std::vector<std::vector<std::string>> &stepDefineList,
                       const std::vector<std::map<std::string, std::string>> &auxiliaryEdgeList,
                       const std::vector<float> &walkLengthRatioList,
@@ -857,7 +778,7 @@ void Graph::reset(const bool &onlyVisitedCount) {
 //    return nodeVisitedCountList;
 //}
 
-std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
 
 #ifndef ONLY_VISITED_NODE_RESULT
@@ -898,7 +819,7 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     return nodeVisitedCountList;
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;    
 
     const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
@@ -919,6 +840,27 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     
     return nodeVisitedCountList;
+}
+
+std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNodeIDListsByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const {
+    // 定义多个开始点对应的目标节点访问次数列表
+    std::vector<std::vector<std::pair<std::string, int>>> nodeVisitedCountLists;
+    nodeVisitedCountLists.reserve(threadNumList.size());
+
+    const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
+    for (auto i = 0; i < threadNumList.size(); ++i) {
+        std::vector<std::pair<std::string, int>> nodeVisitedCountList;
+        nodeVisitedCountList.reserve(typeNodeList.size());
+
+        for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
+            nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID())));
+        }
+
+        std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
+        nodeVisitedCountLists.emplace_back(nodeVisitedCountList);
+    }
+
+    return nodeVisitedCountLists;
 }
 
 bool Graph::isLinked(const std::string &aNodeType, const std::string &aNodeID, const std::string &bNodeType, const std::string &bNodeID, std::vector<std::string> &traverseSequenceList) {
@@ -963,10 +905,11 @@ void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) 
     for (auto i = 0; i < excludeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(excludeNodeTypeIDList[i])) {
             this->nodeList.at(excludeNodeTypeIDList[i])->exclude();
+            // 重新生成当前被排除点的邻接点的分类型链表（排除当前点会导致与邻接点的边也要被排除）
+            for (auto iter = this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().begin(); iter != this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().end(); ++iter) {
+                iter->first->flushLinkedNodes();
+            }
         }
-    }
-    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-        iter->second->flushLinkedNodes();
     }
 }
 
@@ -1006,6 +949,9 @@ void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> 
 void Graph::flush() {
     LOG(INFO) << "刷新图！";
 
+    /**
+     * 初始化图中全部节点的类型链表
+     */
     for (auto iter = this->nodeTypeCountList.begin(); iter != this->nodeTypeCountList.end(); ++iter) {
         this->typeNodeList[iter->first] = std::vector<Node *>();
         this->typeNodeList[iter->first].reserve(iter->second);
@@ -1013,10 +959,13 @@ void Graph::flush() {
 
     // 遍历图中全部节点
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        // 将当前节点接入对应的类型链表
         this->typeNodeList[iter->second->getType()].emplace_back(iter->second);
 
         // 刷新当前点
+        // 生成每个点的分类型链表（包括去掉分类型链表、每个链表的随机数分布器）
         iter->second->flushLinkedNodes();
+
         // 遍历当前点的分类型链表
         for (auto subIter = iter->second->getLinkedNodeMapList().begin(); subIter != iter->second->getLinkedNodeMapList().end(); ++subIter) {
             // 建立当前节点的分类型度数列表
@@ -1041,6 +990,49 @@ void Graph::flush() {
             }
         }
     }
+
+
+    /**
+     * 图计算结果的初始化
+     */
+
+#ifndef ONLY_VISITED_NODE_RESULT
+    if (this->resultType == "visited_count") {
+        this->visitedNodeTypeIDCountList.clear();
+
+        // 按照支持的最大线程数创建节点访问次数列表
+        // 会在maxWalkBeginNodeCount个数的基础上多申请一个HashMap，用于多个HashMap合并时的存储
+        for (auto i = 0; i <= maxWalkBeginNodeCount; ++i) {
+            // 生成当前线程的节点访问HashMap
+            std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
+            // 将图中全部未排除节点的访问次数置零
+            for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+                if (iter->second->canVisit()) {
+                    countMap[iter->first] = 0;
+                }
+            }
+            // 将该记录有图中全部节点初始访问次数的HashMap放入列表
+            this->visitedNodeTypeIDCountList.emplace_back(countMap);
+            std::cout << this->visitedNodeTypeIDCountList.size() << std::endl;
+        }
+    } else {
+        this->walkingSequence.clear();
+
+        for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
+            this->walkingSequence.emplace_back(std::vector<std::string>());
+        }
+    }
+#else
+for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
+        std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
+        for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+            if (iter->second->canVisit()) {
+                countMap[iter->first] = 0;
+            }
+        }
+        this->visitedNodeTypeIDCountList.emplace_back(countMap);
+    }
+#endif
 }
 
 void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const &beginNode, const WalkingDirection &direction,
@@ -1142,16 +1134,17 @@ std::string Graph::getTypeFromTypeID(const std::string tpeID) {
 
 void Graph::clearResultList(const unsigned int &threadNum) {
 #ifndef ONLY_VISITED_NODE_RESULT
-    if (this->resultType == "walking_sequence") {
-        this->walkingSequence.at(threadNum).clear();
-    } else {
+    if (this->resultType == "visited_count") {
         for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-            this->visitedNodeTypeIDCountList[0][iter->first] = 0;
+//            this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
+            std::cout << this->visitedNodeTypeIDCountList.size() << std::endl;
         }
+    } else {
+        this->walkingSequence.at(threadNum).clear();
     }
 #else
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-        this->visitedNodeTypeIDCountList[0][iter->first] = 0;
+        this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
     }
 #endif
 }
@@ -1161,9 +1154,37 @@ void Graph::insertResultList(Node* &node, const unsigned int &threadNum) {
     if (this->resultType == "visited_count") {
         this->visitedNodeTypeIDCountList.at(threadNum)[node->getTypeID()] = node->getVisitedCount();
     } else {
-        this->walkingSequence.at(threadNum).push_back(node->getType());
+        this->walkingSequence.at(threadNum).emplace_back(node->getTypeID());
     }
 #else
     this->visitedNodeTypeIDCountList.at(threadNum)[node->getTypeID()] = node->getVisitedCount();
 #endif
+}
+
+void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList) {
+    // 定义最大访问次数
+    int maxCount;
+    // 遍历图中全部节点
+    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
+        if (!iter->second->canVisit()) {
+            continue;
+        }
+
+        // 初始化当前点的最大访问次数为0
+        maxCount = this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].at(iter->first);
+        // 遍历多路图操作对应的线程编号
+        for (auto i = 0; i < threadNumList.size(); ++i) {
+            // 比较当前点在当前路图操作中的访问次数是否最大
+            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at(iter->first) > maxCount) {
+                maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at(iter->first);
+            }
+        }
+        // 记录当前点的最大访问次数
+        this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].at(iter->first) = maxCount;
+    }
+
+    // 清空已合并的图操作结果列表
+    for (auto i = 0; i < threadNumList.size(); ++i) {
+        this->visitedNodeTypeIDCountList[threadNumList[i]].clear();
+    }
 }

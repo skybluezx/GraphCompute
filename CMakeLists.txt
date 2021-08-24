@@ -18,13 +18,20 @@ if (NOT Boost_FOUND)
     message("Boost not found")
 endif ()
 
-add_executable(GraphCompute graph_compute_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
+# 图计算框架
+add_executable(GraphCompute main.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
 target_link_libraries (GraphCompute glog::glog)
 target_link_libraries(GraphCompute ${Boost_LIBRARIES})
+
+# C/S模式图计算-服务端
+add_executable(GraphComputeServer graph_compute_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
+target_link_libraries (GraphComputeServer glog::glog)
+target_link_libraries(GraphComputeServer ${Boost_LIBRARIES})
 if (LINUX)
-    target_link_libraries(GraphCompute rt)
+    target_link_libraries(GraphComputeServer rt)
 endif ()
 
+# C/S模式图计算-客户端
 add_executable(GraphComputeClient graph_compute_client.cpp)
 target_link_libraries (GraphComputeClient glog::glog)
 target_link_libraries(GraphComputeClient ${Boost_LIBRARIES})
@@ -32,10 +39,8 @@ if (LINUX)
     target_link_libraries(GraphComputeClient rt)
 endif ()
 
-add_executable(GraphComputeTest dev_test.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h)
-target_link_libraries (GraphComputeTest glog::glog)
-target_link_libraries(GraphComputeTest ${Boost_LIBRARIES})
-
+# 具体应用
+# 题目召回服务端
 add_executable(QuestionRecallServer question_recall_server.cpp Util.cpp Util.h Graph.cpp Graph.h Node.cpp Node.h type_defination.h Command.cpp Command.h args.h)
 target_link_libraries (QuestionRecallServer glog::glog)
 target_link_libraries(QuestionRecallServer ${Boost_LIBRARIES})

@@ -6,7 +6,6 @@
 
 #include "Util.h"
 #include "Graph.h"
-
 #include "Command.h"
 
 /**
@@ -48,12 +47,11 @@ int main(int argc, char* argv[]) {
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
     std::string resultType;
     Util::getConfig("Input", "result_type", resultType);
+    int maxWalkBeginNodeCount;
+    Util::getConfig("Walk", "max_walk_begin_node_count", maxWalkBeginNodeCount);
 
     std::string questionRecallConfigFile;
     Util::getConfig("QuestionRecall", "config_file_path", questionRecallConfigFile);
-
-    int maxWalkBeginNodeCount;
-    Util::getConfig("QuestionRecall", "max_walk_begin_node_count", maxWalkBeginNodeCount);    
 
     LOG(INFO) << "配置文件路径：" << Util::configFilePath;
     LOG(INFO) << "日志输出路径：" << logDirectory;
@@ -61,8 +59,8 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "图定义路径：" << graphDefineDirectory;
     LOG(INFO) << "读取边数：" << readEdgeCount;
     LOG(INFO) << "图结果类型：" << resultType;
-    LOG(INFO) << "题目召回配置文件：" << questionRecallConfigFile;
     LOG(INFO) << "最大支持开始点个数：" << maxWalkBeginNodeCount;
+    LOG(INFO) << "题目召回配置文件：" << questionRecallConfigFile;
     google::FlushLogFiles(google::INFO);
 
     // 建立图
