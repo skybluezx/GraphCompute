@@ -403,7 +403,9 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         walkLengthRatioList,
                                         restartRatioList,
                                         totalStepCountList,
-                                        isSplitStepCountList);
+                                        isSplitStepCountList,
+                                        targetNodeType,
+                                        false);
 
                         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
                         std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
@@ -411,7 +413,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         google::FlushLogFiles(google::INFO);
 
                         // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                        std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeType, threadNumList);
+                        std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeTypeIDListsByVisitedCount(targetNodeType, threadNumList);
 
                         std::vector<std::thread> threadList;
                         // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
@@ -438,10 +440,19 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                     // 游走
-                    graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
+                    graph.multiWalk(beginNodeTypeList,
+                                    currentBeginNodeIDListGroup,
+                                    stepDefineList,
+                                    auxiliaryEdgeList,
+                                    walkLengthRatioList,
+                                    restartRatioList,
+                                    totalStepCountList,
+                                    isSplitStepCountList,
+                                    targetNodeType,
+                                    false);
 
                     // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                    std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeType, threadNumList);
+                    std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeTypeIDListsByVisitedCount(targetNodeType, threadNumList);
 
                     std::vector<std::thread> threadList;
                     // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
@@ -494,6 +505,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
                     Command::questionRecallRestartRatioList,
                     Command::questionRecallTotalStepCountList,
                     Command::questionRecallIsSplitStepCountList,
+                    "Question",
                     false);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
@@ -626,7 +638,7 @@ void Command::visitedCountListToFile(const std::vector<std::pair<std::string, in
         std::ofstream resultFile;
         resultFile.open(filePath);
         for (auto i = 0; i < count; ++i) {
-            resultFile << nodeType << ":" << visitedCountList[i].first << ":" << visitedCountList[i].second << std::endl;
+            resultFile << visitedCountList[i].first << ":" << visitedCountList[i].second << std::endl;
         }
         resultFile.close();
 }

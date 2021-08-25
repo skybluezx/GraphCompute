@@ -174,6 +174,8 @@ public:
                       const float &restartRatio,
                       const unsigned int &totalStepCount,
                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
+                      std::unordered_map<std::string, bool> &nodeIsVisitedList,
+                      const std::string &targetNodeType = "",
                       const bool &keepVisitedCount = false);
 
     /**
@@ -210,6 +212,7 @@ public:
                    const std::vector<float> &restartRatioList,
                    const std::vector<unsigned int> &totalStepCountList,
                    const std::vector<bool> &isSplitStepCountList,
+                   const std::string targetNodeType = "",
                    const bool &keepVisitedCount = false);
 
     /**
@@ -256,7 +259,7 @@ public:
      * @param threadNumList
      * @return
      */
-    std::vector<std::vector<std::pair<std::string, int>>> getSortedResultNodeIDListsByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const;
+    std::vector<std::vector<std::pair<std::string, int>>> getSortedResultNodeTypeIDListsByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const;
 
     /**
      * 判断两点在图中是否相连
@@ -378,6 +381,7 @@ private:
      * 被访问过的节点访问次数字典
      */
     std::vector<std::unordered_map<std::string, unsigned int>> visitedNodeTypeIDCountList;
+    std::vector<std::unordered_map<std::string, bool>> isVisitedNodeTypeIDList;
 
     /**
      * 按访问顺序存储的节点TypeID列表
