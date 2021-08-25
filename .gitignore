@@ -7,6 +7,11 @@ build/CMakeFiles/
 build/Makefile
 build/cmake_install.cmake
 build/compile.sh
+build/make.sh
+build/question_recall_server_test.sh
+build/run_client.sh
+build/run_main.sh
+build/run_server.sh
 build/config/
 build/task/
 build/graph_define/
