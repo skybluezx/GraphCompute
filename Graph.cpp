@@ -409,8 +409,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                          const float &restartRatio,
                          const unsigned int &totalStepCount,
                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
-                         std::unordered_map<std::string, bool> &nodeIsVisitedList,
-                         const std::string &targetNodeType,
                          const bool &keepVisitedCount) {
     // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
     // 当前线程的随机引擎
@@ -423,7 +421,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
         iter->second = 0;
     }
-    nodeIsVisitedList.clear();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -482,13 +479,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 #endif
             // 访问当前点
             nodeVisitedCountList.at(currentNode->getTypeID())++;
-            if (targetNodeType != "") {
-                if (currentNode->getType() == targetNodeType) {
-                    nodeIsVisitedList[currentNode->getTypeID()] = true;
-                }
-            } else {
-                nodeIsVisitedList[currentNode->getTypeID()] = true;
-            }
             // 本次已游走步长加1
             length++;
 #ifdef INFO_LOG_OUTPUT
@@ -504,13 +494,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                 if (auxiliaryNode != nullptr) {
                     // 存在辅助点则访问
                     nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
-                    if (targetNodeType != "") {
-                        if (currentNode->getType() == targetNodeType) {
-                            nodeIsVisitedList[currentNode->getTypeID()] = true;
-                        }
-                    } else {
-                        nodeIsVisitedList[currentNode->getTypeID()] = true;
-                    }
 #ifdef INFO_LOG_OUTPUT
                     LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
 #endif
@@ -519,13 +502,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                     auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
                     if (currentNode != nullptr) {
                         nodeVisitedCountList.at(currentNode->getTypeID())++;
-                        if (targetNodeType != "") {
-                            if (currentNode->getType() == targetNodeType) {
-                                nodeIsVisitedList[currentNode->getTypeID()] = true;
-                            }
-                        } else {
-                            nodeIsVisitedList[currentNode->getTypeID()] = true;
-                        }
 #ifdef INFO_LOG_OUTPUT
                         LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
 #endif
@@ -648,7 +624,6 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<float> &restartRatioList,
                       const std::vector<unsigned int> &totalStepCountList,
                       const std::vector<bool> &isSplitStepCountList,
-                      const std::string targetNodeType,
                       const bool &keepVisitedCount) {
     // 初始化线程起始编号为0
     unsigned int threadNum = 0;
@@ -721,8 +696,6 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                                 std::cref(restartRatioList[i]),
                                 std::cref(stepCountList[iter->first]),
                                 std::ref(this->visitedNodeTypeIDCountList[threadNum]),
-                                std::ref(this->isVisitedNodeTypeIDList[threadNum]),
-                                std::cref(targetNodeType),
                                 std::cref(keepVisitedCount))
 //                    std::thread(&Graph::walkOnThread1, this,
 //                                std::cref(beginNodeTypeList[i]),
@@ -832,11 +805,10 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     } else {
-        auto &isVisitedNodeTypeIDList = this->isVisitedNodeTypeIDList[threadNum];
-        nodeVisitedCountList.reserve(isVisitedNodeTypeIDList.size());
-
-        for (auto iter = isVisitedNodeTypeIDList.begin(); iter != isVisitedNodeTypeIDList.end(); ++iter) {
-            nodeVisitedCountList.emplace_back(std::pair(iter->first, this->visitedNodeTypeIDCountList[threadNum].at(iter->first)));
+        auto &typeNodeList = this->typeNodeList.at(nodeType);
+        nodeVisitedCountList.reserve(typeNodeList.size());
+        for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
+            nodeVisitedCountList.emplace_back(std::pair((*iter)->getTypeID(), this->visitedNodeTypeIDCountList[threadNum].at((*iter)->getTypeID())));
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     }
@@ -884,13 +856,13 @@ std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNode
     nodeVisitedCountLists.reserve(threadNumList.size());
 
     for (auto i = 0; i < threadNumList.size(); ++i) {
-        auto &isVisitedNodeTypeIDList = this->isVisitedNodeTypeIDList[threadNumList[i]];
+        auto &typeNodeList = this->typeNodeList.at(nodeType);
 
         std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-        nodeVisitedCountList.reserve(isVisitedNodeTypeIDList.size());
+        nodeVisitedCountList.reserve(typeNodeList.size());
 
-        for (auto iter = isVisitedNodeTypeIDList.begin(); iter != isVisitedNodeTypeIDList.end(); ++iter) {
-            nodeVisitedCountList.emplace_back(std::pair(iter->first, this->visitedNodeTypeIDCountList[threadNumList[i]].at(iter->first)));
+        for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
+            nodeVisitedCountList.emplace_back(std::pair((*iter)->getTypeID(), this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID())));
         }
 
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
@@ -1036,7 +1008,6 @@ void Graph::flush() {
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {
         this->visitedNodeTypeIDCountList.clear();
-        this->isVisitedNodeTypeIDList.clear();
 
         // 按照支持的最大线程数创建节点访问次数列表
         // 会在maxWalkBeginNodeCount个数的基础上多申请一个HashMap，用于多个HashMap合并时的存储
@@ -1051,9 +1022,6 @@ void Graph::flush() {
             }
             // 将该记录有图中全部节点初始访问次数的HashMap放入列表
             this->visitedNodeTypeIDCountList.emplace_back(countMap);
-            std::unordered_map<std::string, bool> isVisitedList;
-            isVisitedList.reserve(this->nodeList.size());
-            this->isVisitedNodeTypeIDList.emplace_back(isVisitedList);
         }
     } else {
         this->walkingSequence.clear();

@@ -341,7 +341,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                 restartRatioList,
                                 totalStepCountList,
                                 isSplitStepCountList,
-                                targetNodeType,
                                 false);
                 graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
@@ -413,7 +412,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         restartRatioList,
                                         totalStepCountList,
                                         isSplitStepCountList,
-                                        targetNodeType,
                                         false);
 
                         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -456,7 +454,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                     restartRatioList,
                                     totalStepCountList,
                                     isSplitStepCountList,
-                                    targetNodeType,
                                     false);
 
                     std::vector<std::thread> threadList;
@@ -512,7 +509,6 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
                     Command::questionRecallRestartRatioList,
                     Command::questionRecallTotalStepCountList,
                     Command::questionRecallIsSplitStepCountList,
-                    "Question",
                     false);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
