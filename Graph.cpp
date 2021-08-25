@@ -808,6 +808,9 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
         nodeVisitedCountList.reserve(this->visitedNodeTypeIDCountList.at(threadNum).size());
         for (auto iter = this->visitedNodeTypeIDCountList.at(threadNum).begin(); iter != this->visitedNodeTypeIDCountList.at(threadNum).end(); ++iter) {
             if (Graph::getTypeFromTypeID(iter->first) == nodeType) {
+                if (iter->second == 0) {
+                    continue;
+                }
                 nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
         }
@@ -841,6 +844,9 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
                 maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID());
             }
         }
+        if (maxCount == 0) {
+            continue;
+        }
         nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
@@ -859,6 +865,9 @@ std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNode
         nodeVisitedCountList.reserve(typeNodeList.size());
 
         for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
+            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID()) == 0) {
+                continue;
+            }
             nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID())));
         }
 
