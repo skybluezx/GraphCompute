@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
     std::cout << "[INFO] 任务执行时间（自然时间）：" << programSpan.count() << "秒" << std::endl;
-    std::cout << "[INFO] 任务执行时间（CPU时间）：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << std::endl;
+    std::cout << "[INFO] 任务执行时间（CPU时间）：" << (double)(endTime - startTime) / CLOCKS_PER_SEC << "秒"  << std::endl;
 
     google::ShutdownGoogleLogging();
 }

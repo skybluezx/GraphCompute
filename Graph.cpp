@@ -280,14 +280,6 @@ void Graph::walk(const std::string &beginNodeType,
         return;
     }
 
-    // 判断开始点是否是孤立点
-    if (beginNode->getLinkedNodeMapList(stepDefine).empty()) {
-        // 若是孤立点则访问该开始点后返回
-        beginNode->visit();
-        this->insertResultList(beginNode);
-        return;
-    }
-
     // 定义开始点指针
     Node *currentNode;
     // 初始化当前已完成步数为0
@@ -389,6 +381,11 @@ void Graph::walk(const std::string &beginNodeType,
 
             // 获取当前点的下一个点
             currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
+            // 判断当前点是否存在符合步长定义的下一个节点             
+            if (currentNode == nullptr) {
+                // 不存则则结束本次游走
+                break;
+            }
         }
 
         // 刷新当前步数
@@ -447,13 +444,6 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
         return;
     }
 
-    // 判断开始点是否是孤立点
-    if (beginNode->getLinkedNodeMapList(stepDefine).empty()) {
-        // 若是孤立点则访问该开始点后返回
-        nodeVisitedCountList[beginNode->getTypeID()] = 1;
-        return;
-    }
-
     // 定义开始点指针
     Node *currentNode;
     // 初始化当前已完成步数为0
@@ -499,7 +489,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
             // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
             if (auxiliaryEdge.contains(currentNode->getType())) {
-                Node *auxiliaryNode;
+                Node *auxiliaryNode; 
                 currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
                 if (auxiliaryNode != nullptr) {
                     // 存在辅助点则访问
@@ -548,6 +538,11 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 
             // 获取当前点的下一个点
             currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
+            // 判断当前点是否存在符合步长定义的下一个节点
+            if (currentNode == nullptr) {
+                // 不存则则结束本次游走
+                break;
+            }
         }
         // 刷新当前步数
         currentStepCount += length;
