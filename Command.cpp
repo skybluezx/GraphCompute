@@ -156,8 +156,9 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         // 获取开始点ID
         std::vector<std::string> beginNodeIDList ;
         for (auto iter = commandObj.at("beginNodeID").as_array().begin(); iter != commandObj.at("beginNodeID").as_array().end(); ++iter) {
-            beginNodeIDList.push_back(iter->as_string().c_str());
+            beginNodeIDList.emplace_back(iter->as_string().c_str());
         }
+
         // 获取步的边组成
         std::vector<std::string> stepDefine;
         for (auto iter = commandObj.at("stepDefine").as_array().begin(); iter != commandObj.at("stepDefine").as_array().end(); ++iter) {
@@ -330,8 +331,15 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                 currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                 // 游走
+                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
                 graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
                 graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
+
+                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+                LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
+                google::FlushLogFiles(google::INFO);
 
                 threadNum = 0;
                 threadNumList.clear();
@@ -386,6 +394,8 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                         // 游走
+                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
                         graph.multiWalk(beginNodeTypeList,
                                         currentBeginNodeIDListGroup,
                                         stepDefineList,
@@ -394,6 +404,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         restartRatioList,
                                         totalStepCountList,
                                         isSplitStepCountList);
+
+                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                        std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+                        LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
+                        google::FlushLogFiles(google::INFO);
 
                         // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
                         std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeIDListsByVisitedCount(targetNodeType, threadNumList);

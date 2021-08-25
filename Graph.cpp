@@ -1141,8 +1141,7 @@ void Graph::clearResultList(const unsigned int &threadNum) {
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {
         for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-//            this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
-            std::cout << this->visitedNodeTypeIDCountList.size() << std::endl;
+            this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
         }
     } else {
         this->walkingSequence.at(threadNum).clear();

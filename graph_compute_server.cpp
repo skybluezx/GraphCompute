@@ -157,6 +157,9 @@ int main(int argc, char* argv[]) {
         } catch (std::exception &e) {
             // Todo
             // 服务端不因为常见异常退出仍需完善
+
+            LOG(ERROR) << "服务端执行异常！任务失败！";
+            *commandString = "";
         }
     }
 
