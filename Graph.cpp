@@ -423,6 +423,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
         iter->second = 0;
     }
+    nodeIsVisitedList.clear();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -835,7 +836,7 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
         nodeVisitedCountList.reserve(isVisitedNodeTypeIDList.size());
 
         for (auto iter = isVisitedNodeTypeIDList.begin(); iter != isVisitedNodeTypeIDList.end(); ++iter) {
-            nodeVisitedCountList.emplace_back(std::pair(iter->first, this->visitedNodeTypeIDCountList.at(threadNum).at(iter->first)));
+            nodeVisitedCountList.emplace_back(std::pair(iter->first, this->visitedNodeTypeIDCountList[threadNum].at(iter->first)));
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     }

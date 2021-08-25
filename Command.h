@@ -56,7 +56,7 @@ private:
     // 每一路召回对应的总步数切分策略
     static std::vector<bool> questionRecallIsSplitStepCountList;
 
-    static void visitedCountListToFile(const std::vector<std::pair<std::string, int>> &visitedCountList, const std::string nodeType, const std::string filePath, const unsigned int visitedCountTopN);
+    static void visitedCountListToFile(std::vector<std::pair<std::string, int>> visitedCountList, const std::string nodeType, const std::string filePath, const unsigned int visitedCountTopN);
 };
 
 
