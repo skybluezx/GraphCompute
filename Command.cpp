@@ -197,14 +197,14 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             google::FlushLogFiles(google::INFO);
 
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeIDListByVisitedCount(targetNodeType);
+            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType);
             // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
             int n = visitedCountTopN;
             if (n > result.size()) n = result.size();
             std::ofstream resultFile;
             resultFile.open(resultDirectoryPath + "/" + beginNodeType + ":" + beginNodeIDList[i] + "_result.dat");
             for (auto i = 0; i < n; ++i) {
-                resultFile << beginNodeType + ":" + result[i].first << ":" << result[i].second << std::endl;
+                resultFile << result[i].first << ":" << result[i].second << std::endl;
             }
             resultFile.close();
         }
@@ -333,7 +333,16 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                 // 游走
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-                graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
+                graph.multiWalk(beginNodeTypeList,
+                                currentBeginNodeIDListGroup,
+                                stepDefineList,
+                                auxiliaryEdgeList,
+                                walkLengthRatioList,
+                                restartRatioList,
+                                totalStepCountList,
+                                isSplitStepCountList,
+                                targetNodeType,
+                                false);
                 graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -347,7 +356,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             }
 
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeIDListByVisitedCount(targetNodeType, graph.getMaxWalkBeginNodeCount());
+            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType, graph.getMaxWalkBeginNodeCount());
 
             // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
             unsigned int count = visitedCountTopN;
@@ -355,7 +364,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             std::ofstream resultFile;
             resultFile.open(resultDirectoryPath + "/merged_result.dat");
             for (auto i = 0; i < count; ++i) {
-                resultFile << targetNodeType << ":" << result[i].first << ": " << result[i].second << std::endl;
+                resultFile << result[i].first << ": " << result[i].second << std::endl;
             }
             resultFile.close();
         } else {
@@ -412,14 +421,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
                         google::FlushLogFiles(google::INFO);
 
-                        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                        std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeTypeIDListsByVisitedCount(targetNodeType, threadNumList);
-
                         std::vector<std::thread> threadList;
-                        // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-                        for (auto j = 0; j < result.size(); ++j) {
-                            std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat";
-                            threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), targetNodeType, filePath, visitedCountTopN);
+                        for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
+                            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+                            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType, threadNumList[threadIndex]);
+
+                            std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
+                            threadList.emplace_back(Command::visitedCountListToFile, std::cref(result), targetNodeType, filePath, visitedCountTopN);
                         }
 
                         for (auto j = 0; j < threadList.size(); ++j) {
@@ -451,14 +459,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                     targetNodeType,
                                     false);
 
-                    // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                    std::vector<std::vector<std::pair<std::string, int>>> result = graph.getSortedResultNodeTypeIDListsByVisitedCount(targetNodeType, threadNumList);
-
                     std::vector<std::thread> threadList;
-                    // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-                    for (auto j = 0; j < result.size(); ++j) {
-                        std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat";
-                        threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), targetNodeType, filePath, visitedCountTopN);
+                    for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
+                        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
+                        std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType, threadNumList[threadIndex]);
+
+                        std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
+                        threadList.emplace_back(Command::visitedCountListToFile, std::cref(result), targetNodeType, filePath, visitedCountTopN);
                     }
 
                     for (auto j = 0; j < threadList.size(); ++j) {

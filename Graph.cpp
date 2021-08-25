@@ -811,7 +811,7 @@ void Graph::reset(const bool &onlyVisitedCount) {
 //    return nodeVisitedCountList;
 //}
 
-std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
 
 #ifndef ONLY_VISITED_NODE_RESULT
@@ -831,14 +831,11 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     } else {
-        nodeVisitedCountList.reserve(this->visitedNodeTypeIDCountList.at(threadNum).size());
-        for (auto iter = this->visitedNodeTypeIDCountList.at(threadNum).begin(); iter != this->visitedNodeTypeIDCountList.at(threadNum).end(); ++iter) {
-            if (Graph::getTypeFromTypeID(iter->first) == nodeType) {
-                if (iter->second == 0) {
-                    continue;
-                }
-                nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
-            }
+        auto &isVisitedNodeTypeIDList = this->isVisitedNodeTypeIDList[threadNum];
+        nodeVisitedCountList.reserve(isVisitedNodeTypeIDList.size());
+
+        for (auto iter = isVisitedNodeTypeIDList.begin(); iter != isVisitedNodeTypeIDList.end(); ++iter) {
+            nodeVisitedCountList.emplace_back(std::pair(iter->first, this->visitedNodeTypeIDCountList.at(threadNum).at(iter->first)));
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     }

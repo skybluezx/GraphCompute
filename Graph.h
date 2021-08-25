@@ -243,7 +243,7 @@ public:
      * @param threadNum 线程编号(默认为第一个线程，单线程游走时即默认使用第一个线程)
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum=0) const;
+    std::vector<std::pair<std::string, int>> getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum=0) const;
 
     /**
      * 获取多个线程编号对应的指定类型的节点访问次数列表
