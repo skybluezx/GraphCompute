@@ -417,7 +417,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
                         for (auto j = 0; j < result.size(); ++j) {
                             std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat";
-                            threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), std::cref(targetNodeType), std::cref(filePath), std::cref(visitedCountTopN));
+                            threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), targetNodeType, filePath, visitedCountTopN);
                         }
 
                         for (auto j = 0; j < threadList.size(); ++j) {
@@ -447,7 +447,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
                     for (auto j = 0; j < result.size(); ++j) {
                         std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[j] + "_result.dat";
-                        threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), std::cref(targetNodeType), std::cref(filePath), std::cref(visitedCountTopN));
+                        threadList.emplace_back(Command::visitedCountListToFile, std::cref(result[j]), targetNodeType, filePath, visitedCountTopN);
                     }
 
                     for (auto j = 0; j < threadList.size(); ++j) {
@@ -619,7 +619,7 @@ std::vector<std::string> Command::questionRecallTargetNodeTypeList;
 // 每一路召回对应的总步数切分策略
 std::vector<bool> Command::questionRecallIsSplitStepCountList;
 
-void Command::visitedCountListToFile(const std::vector<std::pair<std::string, int>> &visitedCountList, const std::string &nodeType, const std::string filePath, const unsigned int visitedCountTopN) {
+void Command::visitedCountListToFile(const std::vector<std::pair<std::string, int>> &visitedCountList, const std::string nodeType, const std::string filePath, const unsigned int visitedCountTopN) {
         // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
         unsigned int count = visitedCountTopN;
         if (count > visitedCountList.size()) count = visitedCountList.size();
