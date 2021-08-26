@@ -427,6 +427,11 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
         LOG(ERROR) << "开始点不存在！" << beginNodeType + ":" + beginNodeID;
         return;
     }
+    
+    if (!this->nodeList.at(beginNodeType + ":" + beginNodeID)->canVisit()) {
+        LOG(ERROR) << "开始点被排除！" << beginNodeType + ":" + beginNodeID;
+        return;
+    }
 
     // 获取开始点ID对应的点指针
     Node *beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
