@@ -17,7 +17,7 @@ def get_test_courseware_main_kp(test_kp_courseware_question_file_path):
     return courseware_main_kp_list
 
 
-def get_test_recall_task_json(courseware_main_kp_list, save_dir_path, stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount, visitedCountTopN):
+def get_test_recall_task_json(courseware_main_kp_list, save_dir_path, stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount, isSplitStepCount, visitedCountTopN):
     for cw in courseware_main_kp_list:
         task_json = dict()
 
@@ -31,19 +31,17 @@ def get_test_recall_task_json(courseware_main_kp_list, save_dir_path, stepDefine
 
         task_json["is_merge"] = True
 
-        task_json["stepDefine"] = list()
-        task_json["stepDefine"].append(stepDefine)
+        task_json["stepDefine"] = stepDefine
 
-        task_json["auxiliaryEdge"] = list()
-        task_json["auxiliaryEdge"].append(auxiliaryEdge)
+        task_json["auxiliaryEdge"] = auxiliaryEdge
 
-        task_json["walkLengthRatio"] = [walkLengthRatio]
+        task_json["walkLengthRatio"] = walkLengthRatio
 
-        task_json["restartRatio"] = [restartRatio]
+        task_json["restartRatio"] = restartRatio
 
-        task_json["totalStepCount"] = [totalStepCount]
+        task_json["totalStepCount"] = totalStepCount
 
-        task_json["isSplitStepCount"] = [False]
+        task_json["isSplitStepCount"] = isSplitStepCount
 
         task_json["targetNodeType"] = "Question"
 
@@ -62,11 +60,25 @@ if __name__ == "__main__":
 
     task_json_save_dir_path = '/Users/zhaixiao/workplace/c_cpp/GraphCompute/build/test_data/test_courseware_task_json'
     stepDefine = [
-        "KnowledgePoint", "Question"
+        ["KnowledgePoint", "Question"],
+        ["KnowledgePoint", "Question"]
     ]
-    auxiliaryEdge = ["Courseware"]
-    walkLengthRatio = 1.0
-    restartRatio = 0.0
-    totalStepCount = 100000
+    auxiliaryEdge = [
+        {"Question": "Courseware"},
+        {"Question": "Courseware"},
+    ]
+    walkLengthRatio = [1.0, 1.0]
+    restartRatio = [0.0, 0.0]
+    totalStepCount = [100000, 100000]
+    isSplitStepCount = [False, False]
     visitedCountTopN = 100
-    get_test_recall_task_json(course_kp_list, task_json_save_dir_path, stepDefine, auxiliaryEdge, walkLengthRatio, restartRatio, totalStepCount, visitedCountTopN)
+
+    get_test_recall_task_json(course_kp_list,
+                              task_json_save_dir_path,
+                              stepDefine,
+                              auxiliaryEdge,
+                              walkLengthRatio,
+                              restartRatio,
+                              totalStepCount,
+                              isSplitStepCount,
+                              visitedCountTopN)

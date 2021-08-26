@@ -925,6 +925,9 @@ void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) 
     for (auto i = 0; i < excludeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(excludeNodeTypeIDList[i])) {
             this->nodeList.at(excludeNodeTypeIDList[i])->exclude();
+            for (auto iter = this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().begin(); iter != this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().end(); ++iter) {
+                iter->first->flushLinkedNodes();
+            }
         }
     }
 }
@@ -933,9 +936,11 @@ void Graph::excludeEdges(const std::vector<std::pair<std::string, std::string>> 
     for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
         if (this->nodeList.contains(iter->first)) {
             this->nodeList.at(iter->first)->excludeEdge(iter->second);
+            this->nodeList.at(iter->first)->flushLinkedNodes();
         }
         if (this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->second)->excludeEdge(iter->first);
+            this->nodeList.at(iter->second)->flushLinkedNodes();
         }
     }
 }
