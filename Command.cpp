@@ -25,8 +25,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         }
         graph.excludeNodes(excludeNodeTypeIDList);
 
-        graph.flush();
-
         LOG(INFO) << "[执行完毕！]";
     } else if (commandObj.at("name").as_string() == "exclude_node_or_edge_from_file") {
         /**
@@ -80,8 +78,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             graph.excludeEdges(excludeEdgeList);
         }
 
-        graph.flush();
-
         LOG(INFO) << "[执行完毕！]";
     } else if (commandObj.at("name").as_string() == "include_node_or_edge_from_file") {
         /**
@@ -134,8 +130,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         if (!includeEdgeList.empty()) {
             graph.includeEdges(includeEdgeList);
         }
-
-        graph.flush();
 
         LOG(INFO) << "[执行完毕！]";
     } else if (commandObj.at("name").as_string() == "traverse") {

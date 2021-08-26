@@ -949,6 +949,9 @@ void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) 
     for (auto i = 0; i < includeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(includeNodeTypeIDList[i])) {
             this->nodeList.at(includeNodeTypeIDList[i])->include();
+            for (auto iter = this->nodeList.at(includeNodeTypeIDList[i])->getLinkedNodeList().begin(); iter != this->nodeList.at(includeNodeTypeIDList[i])->getLinkedNodeList().end(); ++iter) {
+                iter->first->flushLinkedNodes();
+            }
         }
     }
 }
@@ -957,9 +960,11 @@ void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> 
     for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
         if (this->nodeList.contains(iter->first)) {
             this->nodeList.at(iter->first)->includeEdge(iter->second);
+            this->nodeList.at(iter->first)->flushLinkedNodes();
         }
         if (this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->second)->includeEdge(iter->first);
+            this->nodeList.at(iter->second)->flushLinkedNodes();
         }
     }
 }
