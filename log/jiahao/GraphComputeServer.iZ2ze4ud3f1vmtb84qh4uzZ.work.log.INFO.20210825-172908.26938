@@ -1,0 +1,28 @@
+Log file created at: 2021/08/25 17:29:08
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210825 17:29:08.242980 26938 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/jiahao.ini
+I20210825 17:29:08.243172 26938 graph_compute_server.cpp:64] 服务端名称：jiahao
+I20210825 17:29:08.243176 26938 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/jiahao
+I20210825 17:29:08.243178 26938 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210825 17:29:08.243180 26938 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210825 17:29:08.243181 26938 graph_compute_server.cpp:68] 读取边数：-1
+I20210825 17:29:08.243183 26938 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210825 17:29:08.243185 26938 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/jiahao
+I20210825 17:29:08.243187 26938 graph_compute_server.cpp:71] 最大支持开始点个数：40
+I20210825 17:29:08.244194 26938 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210825 17:31:01.804440 26938 Graph.cpp:141] 文件读取完成！
+I20210825 17:31:01.804517 26938 Graph.cpp:153] 图加载完毕！
+I20210825 17:31:01.804528 26938 Graph.cpp:965] 刷新图！
+I20210825 17:31:31.171942 26938 graph_compute_server.cpp:106] Courseware:154883
+I20210825 17:31:31.171970 26938 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210825 17:31:31.171973 26938 graph_compute_server.cpp:106] Question:114839
+I20210825 17:31:31.171996 26938 graph_compute_server.cpp:120] 等待任务中...
+I20210825 17:32:24.537283 26938 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:32:24.860873 26938 graph_compute_server.cpp:138] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210825 17:32:24.865607 26938 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:32:24.865684 26938 Command.cpp:33] [排除节点或边（从文件中读取）]
+I20210825 17:37:00.643553 26938 Command.cpp:81] [执行完毕！]
+I20210825 17:37:00.687523 26938 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:37:00.688446 26938 Command.cpp:217] [多重随机游走]

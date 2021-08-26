@@ -1,0 +1,6 @@
+Log file created at: 2021/08/26 13:09:15
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:06:08
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E20210826 13:09:15.394166 30212 Graph.cpp:432] 开始点被排除！KnowledgePoint:6626b5af520211ea9133506b4b129cf8
+E20210826 13:11:15.155072 30739 Graph.cpp:432] 开始点被排除！KnowledgePoint:e62914ecdf1c46d396117178ec6f0f3d

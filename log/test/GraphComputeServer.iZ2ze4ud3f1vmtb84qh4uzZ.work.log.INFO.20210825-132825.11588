@@ -1,0 +1,58 @@
+Log file created at: 2021/08/25 13:28:25
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210825 13:28:25.385998 11588 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/test.ini
+I20210825 13:28:25.386234 11588 graph_compute_server.cpp:64] 服务端名称：test
+I20210825 13:28:25.386238 11588 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/test
+I20210825 13:28:25.386240 11588 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210825 13:28:25.386242 11588 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210825 13:28:25.386245 11588 graph_compute_server.cpp:68] 读取边数：-1
+I20210825 13:28:25.386247 11588 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210825 13:28:25.386250 11588 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/test
+I20210825 13:28:25.386251 11588 graph_compute_server.cpp:71] 最大支持开始点个数：4
+I20210825 13:28:25.387269 11588 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210825 13:30:17.904294 11588 Graph.cpp:141] 文件读取完成！
+I20210825 13:30:17.904368 11588 Graph.cpp:153] 图加载完毕！
+I20210825 13:30:17.904379 11588 Graph.cpp:956] 刷新图！
+I20210825 13:30:26.555359 11588 graph_compute_server.cpp:106] Courseware:154883
+I20210825 13:30:26.555387 11588 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210825 13:30:26.555389 11588 graph_compute_server.cpp:106] Question:114839
+I20210825 13:30:26.555415 11588 graph_compute_server.cpp:120] 等待任务中...
+I20210825 13:30:43.429949 11588 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 13:30:43.757567 11588 graph_compute_server.cpp:138] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210825 13:30:43.762173 11588 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 13:30:43.762239 11588 Command.cpp:33] [排除节点或边（从文件中读取）]
+I20210825 13:30:53.447443 11588 Command.cpp:81] [执行完毕！]
+I20210825 13:30:53.503618 11588 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 13:30:53.503836 11588 Command.cpp:152] [随机游走]
+I20210825 13:30:54.412019 11588 Command.cpp:195] [INFO] 单次游走时长：0.907734秒
+I20210825 13:30:57.788472 11588 Command.cpp:195] [INFO] 单次游走时长：0.891974秒
+I20210825 13:31:01.089362 11588 Command.cpp:195] [INFO] 单次游走时长：0.895415秒
+I20210825 13:31:04.459357 11588 Command.cpp:195] [INFO] 单次游走时长：0.899秒
+I20210825 13:31:07.790650 11588 Command.cpp:195] [INFO] 单次游走时长：0.915724秒
+I20210825 13:31:11.295354 11588 Command.cpp:195] [INFO] 单次游走时长：1.04189秒
+I20210825 13:31:15.426882 11588 Command.cpp:195] [INFO] 单次游走时长：0.924136秒
+I20210825 13:31:18.643483 11588 Command.cpp:195] [INFO] 单次游走时长：0.78102秒
+I20210825 13:31:22.119745 11588 Command.cpp:195] [INFO] 单次游走时长：0.905545秒
+I20210825 13:31:25.486054 11588 Command.cpp:195] [INFO] 单次游走时长：0.938457秒
+I20210825 13:31:28.906952 11588 Command.cpp:195] [INFO] 单次游走时长：0.889565秒
+I20210825 13:31:32.163493 11588 Command.cpp:195] [INFO] 单次游走时长：0.815998秒
+I20210825 13:31:35.533201 11588 Command.cpp:195] [INFO] 单次游走时长：0.919417秒
+I20210825 13:31:38.878865 11588 Command.cpp:195] [INFO] 单次游走时长：0.90718秒
+I20210825 13:31:42.273175 11588 Command.cpp:195] [INFO] 单次游走时长：0.899513秒
+I20210825 13:31:45.554935 11588 Command.cpp:195] [INFO] 单次游走时长：0.875089秒
+I20210825 13:31:49.030323 11588 Command.cpp:195] [INFO] 单次游走时长：0.934781秒
+I20210825 13:31:52.427841 11588 Command.cpp:195] [INFO] 单次游走时长：0.9155秒
+I20210825 13:31:55.776768 11588 Command.cpp:195] [INFO] 单次游走时长：0.929817秒
+I20210825 13:31:59.151217 11588 Command.cpp:195] [INFO] 单次游走时长：0.896486秒
+I20210825 13:32:02.521818 11588 Command.cpp:195] [INFO] 单次游走时长：0.904991秒
+I20210825 13:32:05.878194 11588 Command.cpp:195] [INFO] 单次游走时长：0.927917秒
+I20210825 13:32:09.211612 11588 Command.cpp:195] [INFO] 单次游走时长：0.936164秒
+I20210825 13:32:12.697291 11588 Command.cpp:195] [INFO] 单次游走时长：0.931272秒
+I20210825 13:32:16.666075 11588 Command.cpp:195] [INFO] 单次游走时长：0.930126秒
+I20210825 13:32:19.972237 11588 Command.cpp:195] [INFO] 单次游走时长：0.910756秒
+I20210825 13:32:23.421677 11588 Command.cpp:195] [INFO] 单次游走时长：0.906013秒
+I20210825 13:32:26.709110 11588 Command.cpp:195] [INFO] 单次游走时长：0.817723秒
+I20210825 13:32:30.070609 11588 Command.cpp:195] [INFO] 单次游走时长：0.925892秒
+I20210825 13:32:33.466552 11588 Command.cpp:195] [INFO] 单次游走时长：0.909283秒

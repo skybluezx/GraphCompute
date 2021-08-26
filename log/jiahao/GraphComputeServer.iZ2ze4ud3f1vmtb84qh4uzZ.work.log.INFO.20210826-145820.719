@@ -1,0 +1,30 @@
+Log file created at: 2021/08/26 14:58:20
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210826 14:58:20.718070   719 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/jiahao.ini
+I20210826 14:58:20.718675   719 graph_compute_server.cpp:64] 服务端名称：jiahao
+I20210826 14:58:20.718679   719 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/jiahao
+I20210826 14:58:20.718681   719 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210826 14:58:20.718683   719 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210826 14:58:20.718684   719 graph_compute_server.cpp:68] 读取边数：-1
+I20210826 14:58:20.718688   719 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210826 14:58:20.718688   719 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/jiahao
+I20210826 14:58:20.718690   719 graph_compute_server.cpp:71] 最大支持开始点个数：40
+I20210826 14:58:20.720531   719 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210826 15:00:31.830577   719 Graph.cpp:141] 文件读取完成！
+I20210826 15:00:31.830657   719 Graph.cpp:153] 图加载完毕！
+I20210826 15:00:31.830668   719 Graph.cpp:963] 刷新图！
+I20210826 15:01:03.337544   719 graph_compute_server.cpp:106] Courseware:154883
+I20210826 15:01:03.337594   719 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210826 15:01:03.337597   719 graph_compute_server.cpp:106] Question:114839
+I20210826 15:01:03.337603   719 graph_compute_server.cpp:120] 等待任务中...
+I20210826 15:03:01.047865   719 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210826 15:03:01.361310   719 Graph.cpp:963] 刷新图！
+I20210826 15:03:36.209340   719 graph_compute_server.cpp:139] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210826 15:03:36.214691   719 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210826 15:03:36.214773   719 Command.cpp:35] [排除节点或边（从文件中读取）]
+I20210826 15:03:38.574235   719 Graph.cpp:963] 刷新图！
+I20210826 15:04:01.488832   719 Command.cpp:85] [执行完毕！]
+I20210826 15:04:01.530795   719 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210826 15:04:01.542959   719 Command.cpp:223] [多重随机游走]

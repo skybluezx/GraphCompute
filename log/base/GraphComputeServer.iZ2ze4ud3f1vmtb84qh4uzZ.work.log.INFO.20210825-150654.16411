@@ -1,0 +1,41 @@
+Log file created at: 2021/08/25 15:06:54
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210825 15:06:54.911671 16411 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/base.ini
+I20210825 15:06:54.911933 16411 graph_compute_server.cpp:64] 服务端名称：base
+I20210825 15:06:54.911938 16411 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/base
+I20210825 15:06:54.911940 16411 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210825 15:06:54.911942 16411 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210825 15:06:54.911943 16411 graph_compute_server.cpp:68] 读取边数：-1
+I20210825 15:06:54.911947 16411 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210825 15:06:54.911947 16411 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/base
+I20210825 15:06:54.911949 16411 graph_compute_server.cpp:71] 最大支持开始点个数：40
+I20210825 15:06:54.913368 16411 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210825 15:08:55.564785 16411 Graph.cpp:141] 文件读取完成！
+I20210825 15:08:55.564875 16411 Graph.cpp:153] 图加载完毕！
+I20210825 15:08:55.564889 16411 Graph.cpp:956] 刷新图！
+I20210825 15:09:26.373864 16411 graph_compute_server.cpp:106] Courseware:154883
+I20210825 15:09:26.373925 16411 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210825 15:09:26.373929 16411 graph_compute_server.cpp:106] Question:114839
+I20210825 15:09:26.373934 16411 graph_compute_server.cpp:120] 等待任务中...
+I20210825 15:17:52.732638 16411 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 15:17:53.044445 16411 graph_compute_server.cpp:138] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210825 15:17:53.048962 16411 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 15:17:53.049041 16411 Command.cpp:33] [排除节点或边（从文件中读取）]
+I20210825 15:17:53.049067 16411 Command.cpp:81] [执行完毕！]
+I20210825 15:17:53.080418 16411 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 15:17:53.081004 16411 Command.cpp:217] [多重随机游走]
+I20210825 15:17:55.910275 16411 Command.cpp:410] [INFO] 单次游走时长：2.82777秒
+I20210825 15:18:40.310220 16411 Command.cpp:410] [INFO] 单次游走时长：2.61168秒
+I20210825 15:19:26.185055 16411 Command.cpp:410] [INFO] 单次游走时长：2.46381秒
+I20210825 15:20:10.810575 16411 Command.cpp:410] [INFO] 单次游走时长：2.60981秒
+I20210825 15:20:56.010385 16411 Command.cpp:410] [INFO] 单次游走时长：2.69499秒
+I20210825 15:21:39.989004 16411 Command.cpp:410] [INFO] 单次游走时长：2.3637秒
+I20210825 15:22:32.240000 16411 Command.cpp:410] [INFO] 单次游走时长：2.51027秒
+I20210825 15:23:16.724249 16411 Command.cpp:410] [INFO] 单次游走时长：2.74029秒
+I20210825 15:24:12.946511 16411 Command.cpp:410] [INFO] 单次游走时长：2.58474秒
+I20210825 15:24:56.888991 16411 Command.cpp:410] [INFO] 单次游走时长：2.5953秒
+I20210825 15:25:41.409485 16411 Command.cpp:410] [INFO] 单次游走时长：2.50632秒
+I20210825 15:26:26.317875 16411 Command.cpp:410] [INFO] 单次游走时长：2.10147秒
+I20210825 15:27:23.212774 16411 Command.cpp:462] [执行完毕！]

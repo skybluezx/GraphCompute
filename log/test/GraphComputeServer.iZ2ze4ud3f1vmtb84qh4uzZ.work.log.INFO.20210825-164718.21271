@@ -1,0 +1,50 @@
+Log file created at: 2021/08/25 16:47:18
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210825 16:47:18.588668 21271 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/test.ini
+I20210825 16:47:18.588953 21271 graph_compute_server.cpp:64] 服务端名称：test
+I20210825 16:47:18.588958 21271 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/test
+I20210825 16:47:18.588960 21271 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210825 16:47:18.588961 21271 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210825 16:47:18.588963 21271 graph_compute_server.cpp:68] 读取边数：-1
+I20210825 16:47:18.588965 21271 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210825 16:47:18.588968 21271 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/test
+I20210825 16:47:18.588969 21271 graph_compute_server.cpp:71] 最大支持开始点个数：40
+I20210825 16:47:18.590090 21271 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210825 16:49:19.315380 21271 Graph.cpp:141] 文件读取完成！
+I20210825 16:49:19.315457 21271 Graph.cpp:153] 图加载完毕！
+I20210825 16:49:19.315467 21271 Graph.cpp:956] 刷新图！
+I20210825 16:49:50.444309 21271 graph_compute_server.cpp:106] Courseware:154883
+I20210825 16:49:50.444361 21271 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210825 16:49:50.444365 21271 graph_compute_server.cpp:106] Question:114839
+I20210825 16:49:50.444370 21271 graph_compute_server.cpp:120] 等待任务中...
+I20210825 16:52:12.648766 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 16:52:12.963205 21271 graph_compute_server.cpp:138] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210825 16:52:12.968070 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 16:52:12.968140 21271 Command.cpp:33] [排除节点或边（从文件中读取）]
+I20210825 16:52:22.768972 21271 Command.cpp:81] [执行完毕！]
+I20210825 16:52:22.811771 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 16:52:22.812281 21271 Command.cpp:217] [多重随机游走]
+I20210825 16:52:25.407680 21271 Command.cpp:410] [INFO] 单次游走时长：2.59065秒
+I20210825 16:53:11.224017 21271 Command.cpp:410] [INFO] 单次游走时长：2.50896秒
+I20210825 16:53:55.946758 21271 Command.cpp:410] [INFO] 单次游走时长：2.41308秒
+I20210825 16:54:40.658020 21271 Command.cpp:410] [INFO] 单次游走时长：2.67666秒
+I20210825 16:55:25.194952 21271 Command.cpp:410] [INFO] 单次游走时长：2.57599秒
+I20210825 16:56:09.350920 21271 Command.cpp:410] [INFO] 单次游走时长：2.5047秒
+I20210825 16:56:53.542575 21271 Command.cpp:410] [INFO] 单次游走时长：2.43514秒
+I20210825 16:57:38.485261 21271 Command.cpp:410] [INFO] 单次游走时长：2.46477秒
+I20210825 16:58:22.778765 21271 Command.cpp:410] [INFO] 单次游走时长：2.55314秒
+I20210825 16:59:09.975612 21271 Command.cpp:410] [INFO] 单次游走时长：2.60367秒
+I20210825 16:59:55.644778 21271 Command.cpp:410] [INFO] 单次游走时长：2.56331秒
+I20210825 17:00:42.564476 21271 Command.cpp:410] [INFO] 单次游走时长：2.61403秒
+I20210825 17:01:46.231099 21271 Command.cpp:467] [执行完毕！]
+I20210825 17:01:49.743182 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:01:50.049571 21271 graph_compute_server.cpp:138] 重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）
+I20210825 17:01:50.054316 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:01:50.054391 21271 Command.cpp:33] [排除节点或边（从文件中读取）]
+I20210825 17:01:58.460852 21271 Command.cpp:81] [执行完毕！]
+I20210825 17:01:58.501253 21271 graph_compute_server.cpp:126] 收到任务开始执行！
+I20210825 17:01:58.501919 21271 Command.cpp:217] [多重随机游走]
+I20210825 17:02:01.100701 21271 Command.cpp:410] [INFO] 单次游走时长：2.59084秒
+I20210825 17:02:45.950951 21271 Command.cpp:410] [INFO] 单次游走时长：2.43747秒

@@ -1,0 +1,13 @@
+Log file created at: 2021/08/25 15:02:21
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210825 15:02:21.475875 16175 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/base.ini
+I20210825 15:02:21.476094 16175 graph_compute_server.cpp:64] 服务端名称：base
+I20210825 15:02:21.476099 16175 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/base
+I20210825 15:02:21.476099 16175 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210825 15:02:21.476101 16175 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210825 15:02:21.476104 16175 graph_compute_server.cpp:68] 读取边数：-1
+I20210825 15:02:21.476105 16175 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210825 15:02:21.476107 16175 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/base
+I20210825 15:02:21.476109 16175 graph_compute_server.cpp:71] 最大支持开始点个数：40

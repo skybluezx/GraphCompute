@@ -1,0 +1,21 @@
+Log file created at: 2021/08/26 13:37:08
+Running on machine: iZ2ze4ud3f1vmtb84qh4uzZ
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20210826 13:37:08.090730  6567 graph_compute_server.cpp:63] 配置文件路径：/home/work/zhanghaonan/graphcompute/config/v5_restart.ini
+I20210826 13:37:08.090988  6567 graph_compute_server.cpp:64] 服务端名称：v5_restart
+I20210826 13:37:08.090993  6567 graph_compute_server.cpp:65] 日志输出路径：/home/work/zhanghaonan/graphcompute/log/v5_restart
+I20210826 13:37:08.090996  6567 graph_compute_server.cpp:66] 日志输出等级：INFO
+I20210826 13:37:08.090996  6567 graph_compute_server.cpp:67] 图定义路径：/home/work/zhanghaonan/graphcompute/graph_define/exp_v5
+I20210826 13:37:08.090998  6567 graph_compute_server.cpp:68] 读取边数：-1
+I20210826 13:37:08.091001  6567 graph_compute_server.cpp:69] 图结果类型：visited_count
+I20210826 13:37:08.091003  6567 graph_compute_server.cpp:70] 结果输出路径：/home/work/zhanghaonan/graphcompute/result/v5_restart
+I20210826 13:37:08.091006  6567 graph_compute_server.cpp:71] 最大支持开始点个数：40
+I20210826 13:37:08.092015  6567 Graph.cpp:57] 读取文件："tripartite_data_v5.csv"
+I20210826 13:39:30.933373  6567 Graph.cpp:141] 文件读取完成！
+I20210826 13:39:30.933445  6567 Graph.cpp:153] 图加载完毕！
+I20210826 13:39:30.933455  6567 Graph.cpp:963] 刷新图！
+I20210826 13:40:07.002965  6567 graph_compute_server.cpp:106] Courseware:154883
+I20210826 13:40:07.024943  6567 graph_compute_server.cpp:106] KnowledgePoint:1498
+I20210826 13:40:07.024961  6567 graph_compute_server.cpp:106] Question:114839
+I20210826 13:40:07.024974  6567 graph_compute_server.cpp:120] 等待任务中...

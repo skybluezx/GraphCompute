@@ -21,6 +21,9 @@ build/log/
 exp/result/*
 exp/prune_input/*
 
+*.csv
+*.json
+*.log
 # Prerequisites
 *.d
 

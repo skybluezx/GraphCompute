@@ -1,3 +1,4 @@
+ # encoding: utf-8
 import configparser
 import argparse
 
@@ -53,6 +54,9 @@ conf.set('LOG', 'log_level', "INFO")
 conf.add_section('Input') #添加section
 conf.set('Input', 'read_edge_count', "-1")
 conf.set('Input', 'result_type', "visited_count")
+
+conf.add_section('Walk')
+conf.set('Walk', "max_walk_begin_node_count", "40")
 
 with open(args.config_path + ".ini", 'w') as fw:
     conf.write(fw)

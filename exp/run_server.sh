@@ -1,8 +1,9 @@
 #!/bin/bash
 
-server_name="test"
-env="macos-clang-12.0.5"
-base_path=/Users/zhanghaonan/tal_project/EXPGraphCompute/GraphCompute
+server_name="v5_restart"
+#env="macos-clang-12.0.5"
+env="centos7-gcc-10.3.0"
+base_path=/home/work/zhanghaonan/graphcompute
 graph_define_directory=$base_path/graph_define/exp_v5
 log_directory=$base_path/log/$server_name
 result_directory=$base_path/result/$server_name
@@ -17,9 +18,6 @@ if [ ! -d "$result_directory" ]; then
         mkdir $result_directory
 fi
 
-if [ ! -d "$config_path" ]; then
-        mkdir $config_path
-fi
 
 python config_generate.py -server_name $server_name \
                           -graph_define_directory $graph_define_directory \
@@ -27,6 +25,6 @@ python config_generate.py -server_name $server_name \
                           -result_directory=$result_directory \
                           -config_path=$config_path
 
-../bini/$env/GraphCompute --config_file_path=$base_path/config/${server_name}.ini
+../build/bin/$env/GraphComputeServer --config_file_path=$base_path/config/${server_name}.ini
 
 
