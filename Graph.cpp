@@ -914,10 +914,6 @@ void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) 
     for (auto i = 0; i < excludeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(excludeNodeTypeIDList[i])) {
             this->nodeList.at(excludeNodeTypeIDList[i])->exclude();
-            // 重新生成当前被排除点的邻接点的分类型链表（排除当前点会导致与邻接点的边也要被排除）
-            for (auto iter = this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().begin(); iter != this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().end(); ++iter) {
-                iter->first->flushLinkedNodes();
-            }
         }
     }
 }
@@ -938,9 +934,6 @@ void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) 
         if (this->nodeList.contains(includeNodeTypeIDList[i])) {
             this->nodeList.at(includeNodeTypeIDList[i])->include();
         }
-    }
-    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-        iter->second->flushLinkedNodes();
     }
 }
 

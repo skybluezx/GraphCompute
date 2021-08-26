@@ -135,6 +135,7 @@ int main(int argc, char* argv[]) {
                     // 系统命令
                     // 图状态重置
                     graph.reset(false);
+                    graph.flush();
                     LOG(INFO) << "重置图中节点状态！（回复初始状态，包括访问次数清零、排除的节点和边重新包含）";
                 } else {
                     // 任务命令
