@@ -20,7 +20,10 @@ build/test_data/
 build/log/
 exp/result/*
 exp/prune_input/*
+result/*
+log/*
 
+*.dat
 *.csv
 *.json
 *.log
