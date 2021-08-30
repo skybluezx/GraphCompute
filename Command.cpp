@@ -320,20 +320,17 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         if (isMergeMultiBeginNodeResult) {
             unsigned int threadNum = 0;
             std::vector<unsigned int> threadNumList;
-            std::map<std::string, double> currentBeginNodeIDList;
+            std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup(beginNodeTypeList.size());
 
             // 遍历开始点类型
             for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
                 // 根据图支持的最大并行开始点个数遍历游走轮数
                 for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
-                    currentBeginNodeIDList[iter->first] = iter->second;
+                    currentBeginNodeIDListGroup[i][iter->first] = iter->second;
                     threadNumList.emplace_back(threadNum);
                     threadNum++;
 
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
-                        std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
-                        currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
-
                         // 游走
                         graph.multiWalk(beginNodeTypeList,
                                         currentBeginNodeIDListGroup,
@@ -347,15 +344,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
                         threadNum = 0;
                         threadNumList.clear();
-                        currentBeginNodeIDList.clear();
+                        currentBeginNodeIDListGroup = std::vector<std::map<std::string, double>>(beginNodeTypeList.size());
                     }
                 }
             }
 
             if (threadNum != 0) {
-                std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
-                currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
-
                 // 游走
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -374,10 +368,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                 std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
                 LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
                 google::FlushLogFiles(google::INFO);
-
-                threadNum = 0;
-                threadNumList.clear();
-                currentBeginNodeIDList.clear();
             }
 
             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数

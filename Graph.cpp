@@ -424,7 +424,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
         LOG(ERROR) << "开始点不存在！" << beginNodeType + ":" + beginNodeID;
         return;
     }
-    
+
     if (!this->nodeList.at(beginNodeType + ":" + beginNodeID)->canVisit()) {
         LOG(ERROR) << "开始点被排除！" << beginNodeType + ":" + beginNodeID;
         return;
@@ -491,32 +491,44 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
             // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
             if (auxiliaryEdge.contains(currentNode->getType())) {
-                Node *auxiliaryNode;
-                const std::vector<Node*> &nextNodeList = currentNode->getLinkedNodeMapList().at(auxiliaryEdge.at(currentNode->getType())).first;
-                // 判断当前点是否存在符合步长定义的下一个节点
-                if (nextNodeList.size() > 0) {
-                    std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
-                    auxiliaryNode = nextNodeList[randomIntDistribution(randomEngine)];
-
-                    // 存在辅助点则访问
-                    nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
-#ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
-#endif
-                    // 从辅助点返回
-                    // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                    const std::vector<Node*> &nextNodeList = auxiliaryNode->getLinkedNodeMapList().at(currentNode->getType()).first;
+                if (currentNode->getLinkedNodeMapList().contains(currentNode->getType())) {
+                    Node *auxiliaryNode;
+                    const std::vector<Node*> &nextNodeList = currentNode->getLinkedNodeMapList().at(auxiliaryEdge.at(currentNode->getType())).first;
+                    // 判断当前点是否存在符合步长定义的下一个节点
                     if (nextNodeList.size() > 0) {
                         std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
-                        currentNode = nextNodeList[randomIntDistribution(randomEngine)];
+                        auxiliaryNode = nextNodeList[randomIntDistribution(randomEngine)];
 
-                        nodeVisitedCountList.at(currentNode->getTypeID())++;
+                        // 存在辅助点则访问
+                        nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
-                        LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+                        LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
 #endif
+                        // 从辅助点返回
+                        // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
+                        if (auxiliaryNode->getLinkedNodeMapList().contains(currentNode->getType())) {
+                            const std::vector<Node*> &nextNodeList = auxiliaryNode->getLinkedNodeMapList().at(currentNode->getType()).first;
+                            if (nextNodeList.size() > 0) {
+                                std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
+                                currentNode = nextNodeList[randomIntDistribution(randomEngine)];
+
+                                nodeVisitedCountList.at(currentNode->getTypeID())++;
+#ifdef INFO_LOG_OUTPUT
+                                LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
+#endif
+                            } else {
+#ifdef INFO_LOG_OUTPUT
+                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+#endif
+                            }
+                        } else {
+#ifdef INFO_LOG_OUTPUT
+                                LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+#endif
+                        }
                     } else {
 #ifdef INFO_LOG_OUTPUT
-                        LOG(ERROR) << "辅助点返回出错！未获取返回点！";
+                        LOG(INFO) << "当前点无辅助边！";
 #endif
                     }
                 } else {
@@ -716,12 +728,14 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                                 std::ref(this->visitedNodeTypeIDCountList[threadNum]),
                                 std::ref(this->randomEngineList[threadNum]),
                                 std::cref(keepVisitedCount))
+
 //                    std::thread(&Graph::walkOnThread1, this,
 //                                std::cref(beginNodeTypeList[i]),
 //                                std::cref(iter->first),
 //                                std::cref(restartRatioList[i]),
 //                                std::cref(stepCountList[iter->first]),
 //                                std::ref(this->visitedNodeTypeIDCountList[threadNum]))
+
                                 );
             threadNum++;
         }
