@@ -222,20 +222,37 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
          */
         LOG(INFO) << "[多重随机游走]";
 
-        // 获取开始点类型
+        // 创建相关参数列表
         std::vector<std::string> beginNodeTypeList;
+        std::vector<std::map<std::string, double>> beginNodeIDList ;
+        std::vector<std::vector<std::string>> stepDefineList;
+        std::vector<std::map<std::string, std::string>> auxiliaryEdgeList;
+        std::vector<float> walkLengthRatioList;
+        std::vector<float> restartRatioList;
+        std::vector<unsigned int> totalStepCountList;
+        std::vector<bool> isSplitStepCountList;
+
+        // 获取开始点类型
+        // 同时创建相关参数的默认值
         for (auto iter = commandObj.at("beginNodeType").as_array().begin(); iter != commandObj.at("beginNodeType").as_array().end(); ++iter) {
             beginNodeTypeList.emplace_back(iter->as_string().c_str());
+
+            beginNodeIDList.emplace_back(std::map<std::string, double>());
+            stepDefineList.emplace_back(std::vector<std::string>());
+            auxiliaryEdgeList.emplace_back(std::map<std::string, std::string>());
+            walkLengthRatioList.emplace_back(0);
+            restartRatioList.emplace_back(0);
+            totalStepCountList.emplace_back(0);
+            isSplitStepCountList.emplace_back(false);
         }
 
-        // 获取开始点ID
-        std::vector<std::map<std::string, double>> beginNodeIDList ;
+        // 设置开始点ID
+        auto i = 0;
         for (auto iter = commandObj.at("beginNodeID").as_array().begin(); iter != commandObj.at("beginNodeID").as_array().end(); ++iter) {
-            std::map<std::string, double> idList;
             for (auto subIter = iter->as_array().begin(); subIter != iter->as_array().end(); ++subIter){
-                idList[subIter->as_object().at("id").as_string().c_str()] = subIter->as_object().at("weight").as_double();
+                beginNodeIDList[i][subIter->as_object().at("id").as_string().c_str()] = subIter->as_object().at("weight").as_double();
             }
-            beginNodeIDList.emplace_back(idList);
+            i++;
         }
 
         // 是否合并全部开始点的游走结果
@@ -243,55 +260,57 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         // 目前采用最大值合并，其他合并策略待开发
         bool isMergeMultiBeginNodeResult = commandObj.at("is_merge").as_bool();
 
-        // 获取步的边组成
-        std::vector<std::vector<std::string>> stepDefineList;
+        // 设置步的边组成
+        i = 0;
         for (auto iter = commandObj.at("stepDefine").as_array().begin(); iter != commandObj.at("stepDefine").as_array().end(); ++iter) {
-            std::vector<std::string> defineList;
             for (auto subIter = iter->as_array().begin(); subIter != iter->as_array().end(); ++subIter) {
-                defineList.emplace_back(subIter->as_string().c_str());
+                stepDefineList[i].emplace_back(subIter->as_string().c_str());
             }
-            stepDefineList.emplace_back(defineList);
+            i++;
         }
 
-        // 获取辅助边
+        // 设置辅助边
         // Todo
         // 一个节点是否可以拥有多条辅助边？
         // 当前只能有一个
-        std::vector<std::map<std::string, std::string>> auxiliaryEdgeList;
+        i = 0;
         for (auto iter = commandObj.at("auxiliaryEdge").as_array().begin(); iter != commandObj.at("auxiliaryEdge").as_array().end(); ++iter) {
-            std::map<std::string, std::string> edgeList;
             for (auto subIter = iter->as_object().begin(); subIter != iter->as_object().end(); ++subIter) {
-                edgeList[subIter->key_c_str()] = subIter->value().as_string().c_str();
+                auxiliaryEdgeList[i][subIter->key_c_str()] = subIter->value().as_string().c_str();
                 // Todo
                 // 辅助边应该具有方向且应该从被辅助点指向辅助点
                 // 目前为了容错，将辅助的双向都进行了存储
-                edgeList[subIter->value().as_string().c_str()] = subIter->key_c_str();
+                auxiliaryEdgeList[i][subIter->value().as_string().c_str()] = subIter->key_c_str();
             }
-            auxiliaryEdgeList.emplace_back(edgeList);
+            i++;
         }
 
-        // 获取单次游走步长参数
-        std::vector<float> walkLengthRatioList;
+        // 设置单次游走步长参数
+        i = 0;
         for (auto iter = commandObj.at("walkLengthRatio").as_array().begin(); iter != commandObj.at("walkLengthRatio").as_array().end(); ++iter) {
-            walkLengthRatioList.emplace_back(iter->as_double());
+            walkLengthRatioList[i] = iter->as_double();
+            i++;
         }
 
-        // 获取重启概率
-        std::vector<float> restartRatioList;
+        // 设置重启概率
+        i = 0;
         for (auto iter = commandObj.at("restartRatio").as_array().begin(); iter != commandObj.at("restartRatio").as_array().end(); ++iter) {
-            restartRatioList.emplace_back(iter->as_double());
+            restartRatioList[i] = iter->as_double();
+            i++;
         }
 
-        // 获取总游走步长
-        std::vector<unsigned int> totalStepCountList;
+        // 设置总游走步长
+        i = 0;
         for (auto iter = commandObj.at("totalStepCount").as_array().begin(); iter != commandObj.at("totalStepCount").as_array().end(); ++iter) {
-            totalStepCountList.emplace_back(iter->as_int64());
+            totalStepCountList[i] = iter->as_int64();
+            i++;
         }
 
-        // 获取是否切分总步长
-        std::vector<bool> isSplitStepCountList;
+        // 设置是否切分总步长
+        i = 0;
         for (auto iter = commandObj.at("isSplitStepCount").as_array().begin(); iter != commandObj.at("isSplitStepCount").as_array().end(); ++iter) {
-            isSplitStepCountList.emplace_back(iter->as_bool());
+            isSplitStepCountList[i] = iter->as_bool();
+            i++;
         }
 
         // 获取目标点类型
@@ -322,7 +341,14 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                         // 游走
-                        graph.multiWalk(beginNodeTypeList, currentBeginNodeIDListGroup, stepDefineList, auxiliaryEdgeList, walkLengthRatioList, restartRatioList, totalStepCountList, isSplitStepCountList);
+                        graph.multiWalk(beginNodeTypeList,
+                                        currentBeginNodeIDListGroup,
+                                        stepDefineList,
+                                        auxiliaryEdgeList,
+                                        walkLengthRatioList,
+                                        restartRatioList,
+                                        totalStepCountList,
+                                        isSplitStepCountList);
                         graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
                         threadNum = 0;
@@ -375,6 +401,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         } else {
             // 遍历开始点类型
             for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
+                // 清理结果目录
                 if (boost::filesystem::exists(resultDirectoryPath + '/' + std::to_string(i))) {
                     boost::filesystem::directory_iterator directoryIterator(resultDirectoryPath + '/' + std::to_string(i));
                     boost::filesystem::directory_iterator directoryIteratorEnd;
@@ -403,13 +430,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     threadNumList.emplace_back(threadNum);
                     threadNum++;
 
+                    // 判断是否凑够最大并行数能够开启一次多线程游走
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
                         std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
                         currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                         // 游走
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
                         graph.multiWalk(beginNodeTypeList,
                                         currentBeginNodeIDListGroup,
                                         stepDefineList,
@@ -419,12 +446,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         totalStepCountList,
                                         isSplitStepCountList,
                                         false);
-
                         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
                         std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
                         LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
                         google::FlushLogFiles(google::INFO);
 
+                        // 多线程生成每个开始点的游走结果
                         std::vector<std::thread> threadList;
                         for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
                             // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
@@ -433,7 +460,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                             std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
                             threadList.emplace_back(Command::visitedCountListToFile, std::move(result), targetNodeType, filePath, visitedCountTopN);
                         }
-
                         for (auto j = 0; j < threadList.size(); ++j) {
                             if (threadList[j].joinable()) {
                                 threadList[j].join();
@@ -441,17 +467,21 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         }
                         threadList.clear();
 
+                        // 清空本次线程运行状态
+                        // 重新开始遍历
                         threadNum = 0;
                         threadNumList.clear();
                         currentBeginNodeIDList.clear();
                     }
                 }
 
+                // 判断是否还有未凑够最大并行游走
                 if (threadNum != 0) {
                     std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
                     currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
 
                     // 游走
+                    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     graph.multiWalk(beginNodeTypeList,
                                     currentBeginNodeIDListGroup,
                                     stepDefineList,
@@ -461,7 +491,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                     totalStepCountList,
                                     isSplitStepCountList,
                                     false);
+                    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                    std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
+                    LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
+                    google::FlushLogFiles(google::INFO);
 
+                    // 多线程生成每个开始点的游走结果
                     std::vector<std::thread> threadList;
                     for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
                         // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
@@ -470,7 +505,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
                         threadList.emplace_back(Command::visitedCountListToFile, std::move(result), targetNodeType, filePath, visitedCountTopN);
                     }
-
                     for (auto j = 0; j < threadList.size(); ++j) {
                         if (threadList[j].joinable()) {
                             threadList[j].join();

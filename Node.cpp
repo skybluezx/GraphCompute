@@ -180,6 +180,9 @@ void Node::reset(const bool &onlyVisitedCount) {
 }
 
 void Node::exclude() {
+    // 只将是否可访问状态置为false
+    // 边不作处理保持当前状态，即如果之前被删过边，则当前存在部分边的状态为false，否则所有边均为true
+    // 对已删除点的边进行访问状态未知
     this->canVisitFlag = false;
 }
 

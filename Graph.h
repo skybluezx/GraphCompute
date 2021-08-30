@@ -164,6 +164,7 @@ public:
      * @param restartRatio          重启概率
      * @param totalStepCount        游走总步长
      * @param nodeVisitedCountList  节点访问次数数组
+     * @param randomEngine          随机引擎
      * @param keepVisitedCount      是否保存本次游走的访问次数
      */
     void walkOnThread(const std::string &beginNodeType,
@@ -174,6 +175,7 @@ public:
                       const float &restartRatio,
                       const unsigned int &totalStepCount,
                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
+                      std::mt19937 &randomEngine,
                       const bool &keepVisitedCount = false);
 
     /**
@@ -376,8 +378,15 @@ private:
 
     /**
      * 被访问过的节点访问次数字典
+     * 按照最大可支持的并行起点个数初始化字典个数
      */
     std::vector<std::unordered_map<std::string, unsigned int>> visitedNodeTypeIDCountList;
+
+    /**
+     * 随机引擎列表
+     * 按照最大可支持的并行起点个数初始化随机引擎的个数
+     */
+    std::vector<std::mt19937> randomEngineList;
 
     /**
      * 按访问顺序存储的节点TypeID列表

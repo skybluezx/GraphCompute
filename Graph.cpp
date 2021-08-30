@@ -409,11 +409,8 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                          const float &restartRatio,
                          const unsigned int &totalStepCount,
                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
+                         std::mt19937 &randomEngine,
                          const bool &keepVisitedCount) {
-    // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
-    // 当前线程的随机引擎
-    std::default_random_engine randomEngine;
-    randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     // 初始化0到1之间实数的随机数分布（用于重启策略）
     std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
 
@@ -494,9 +491,13 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             // (1) 同一类点存在连接多种点的辅助边（当前只能有一种辅助边）
             // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
             if (auxiliaryEdge.contains(currentNode->getType())) {
-                Node *auxiliaryNode; 
-                currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
-                if (auxiliaryNode != nullptr) {
+                Node *auxiliaryNode;
+                const std::vector<Node*> &nextNodeList = currentNode->getLinkedNodeMapList().at(auxiliaryEdge.at(currentNode->getType())).first;
+                // 判断当前点是否存在符合步长定义的下一个节点
+                if (nextNodeList.size() > 0) {
+                    std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
+                    auxiliaryNode = nextNodeList[randomIntDistribution(randomEngine)];
+
                     // 存在辅助点则访问
                     nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
@@ -504,8 +505,11 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
 #endif
                     // 从辅助点返回
                     // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                    auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
-                    if (currentNode != nullptr) {
+                    const std::vector<Node*> &nextNodeList = auxiliaryNode->getLinkedNodeMapList().at(currentNode->getType()).first;
+                    if (nextNodeList.size() > 0) {
+                        std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
+                        currentNode = nextNodeList[randomIntDistribution(randomEngine)];
+
                         nodeVisitedCountList.at(currentNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
                         LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
@@ -535,20 +539,27 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                     // 小于则将当前游走的步数置为最大步数退出本次迭代
                     // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
 #ifdef INFO_LOG_OUTPUT
-                    LOG(INFO) << "[重启]";
+                    LOG(INFO) << "[重启] 概率重启！";
 #endif
                     break;
                 }
             }
 
             // 获取当前点的下一个点
-            currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
+            std::vector<Node*> nextNodeList = std::move(currentNode->getLinkedNodeMapList(stepDefine));
             // 判断当前点是否存在符合步长定义的下一个节点
-            if (currentNode == nullptr) {
+            if (nextNodeList.size() > 0) {
+                std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
+                currentNode = nextNodeList[randomIntDistribution(randomEngine)];
+            } else {
                 // 不存则则结束本次游走
+#ifdef INFO_LOG_OUTPUT
+                LOG(INFO) << "[重启] 没有下一个点！";
+#endif
                 break;
             }
         }
+
         // 刷新当前步数
         currentStepCount += length;
     }
@@ -689,7 +700,7 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
             if (threadNum == this->maxWalkBeginNodeCount) {
                 // 达到则退出
                 break;
-            }            
+            }
 
             threadList.emplace_back(
                     std::thread(&Graph::walkOnThread, this,
@@ -699,8 +710,11 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                                 std::cref(auxiliaryEdgeList[i]),
                                 std::cref(walkLengthRatioList[i]),
                                 std::cref(restartRatioList[i]),
-                                std::cref(stepCountList[iter->first]),
+                                // ！！！！！不能传引用
+                                // 线程join的部分已经在stepCountList生命周期的外部了，会导致这个值被释放进入未定义状态！！！
+                                stepCountList[iter->first],
                                 std::ref(this->visitedNodeTypeIDCountList[threadNum]),
+                                std::ref(this->randomEngineList[threadNum]),
                                 std::cref(keepVisitedCount))
 //                    std::thread(&Graph::walkOnThread1, this,
 //                                std::cref(beginNodeTypeList[i]),
@@ -922,45 +936,86 @@ bool Graph::isLinked(const std::string &aNodeType, const std::string &aNodeID, c
 }
 
 void Graph::excludeNodes(const std::vector<std::string> &excludeNodeTypeIDList) {
+    // 全部邻接点的指针字典
+    std::unordered_map<Node*, bool> linkedNodeTypeIDList;
+    // 遍历全部待删除点
     for (auto i = 0; i < excludeNodeTypeIDList.size(); ++i) {
+        // 查找当前待删除点是否存在
         if (this->nodeList.contains(excludeNodeTypeIDList[i])) {
-            this->nodeList.at(excludeNodeTypeIDList[i])->exclude();
-            for (auto iter = this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().begin(); iter != this->nodeList.at(excludeNodeTypeIDList[i])->getLinkedNodeList().end(); ++iter) {
-                iter->first->flushLinkedNodes();
+            // 获取当前点
+            Node *const node = this->nodeList.at(excludeNodeTypeIDList[i]);
+            // 判断当前点是否已删除
+            if (node->canVisit()) {
+                // 未删除则删除该点
+                node->exclude();
+                // 遍历该点的全部邻接点
+                for (auto iter = node->getLinkedNodeList().begin(); iter != node->getLinkedNodeList().end(); ++iter) {
+                    linkedNodeTypeIDList[iter->first] = true;
+                }
             }
         }
+    }
+    // 刷新所有邻接点的分类型链表
+    for (auto iter = linkedNodeTypeIDList.begin(); iter != linkedNodeTypeIDList.end(); ++iter) {
+        iter->first->flushLinkedNodes();
     }
 }
 
 void Graph::excludeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList) {
+    std::unordered_map<Node*, bool> alteredNodeList;
     for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
-        if (this->nodeList.contains(iter->first)) {
+        if (this->nodeList.contains(iter->first) && this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->first)->excludeEdge(iter->second);
-            this->nodeList.at(iter->first)->flushLinkedNodes();
-        }
-        if (this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->second)->excludeEdge(iter->first);
-            this->nodeList.at(iter->second)->flushLinkedNodes();
+
+            alteredNodeList[this->nodeList.at(iter->first)] = true;
+            alteredNodeList[this->nodeList.at(iter->first)] = true;
         }
+    }
+
+    for (auto iter = alteredNodeList.begin(); iter != alteredNodeList.end(); ++iter) {
+        iter->first->flushLinkedNodes();
     }
 }
 
 void Graph::includeNodes(const std::vector<std::string> &includeNodeTypeIDList) {
+    // 全部邻接点的指针字典
+    std::unordered_map<Node*, bool> linkedNodeTypeIDList;
     for (auto i = 0; i < includeNodeTypeIDList.size(); ++i) {
         if (this->nodeList.contains(includeNodeTypeIDList[i])) {
-            this->nodeList.at(includeNodeTypeIDList[i])->include();
+            // 获取当前点
+            Node *const node = this->nodeList.at(includeNodeTypeIDList[i]);
+            // 判断当前点是否已删除
+            if (!node->canVisit()) {
+                // 未删除则删除该点
+                node->include();
+                // 遍历该点的全部邻接点
+                for (auto iter = node->getLinkedNodeList().begin(); iter != node->getLinkedNodeList().end(); ++iter) {
+                    linkedNodeTypeIDList[iter->first] = true;
+                }
+            }
         }
+    }
+    // 刷新所有邻接点的分类型链表
+    for (auto iter = linkedNodeTypeIDList.begin(); iter != linkedNodeTypeIDList.end(); ++iter) {
+        iter->first->flushLinkedNodes();
     }
 }
 
 void Graph::includeEdges(const std::vector<std::pair<std::string, std::string>> &beginAndEndNodeTypeIDList) {
+    std::unordered_map<std::string, bool> alteredNodeTypeIDList;
     for (auto iter = beginAndEndNodeTypeIDList.begin(); iter != beginAndEndNodeTypeIDList.end(); ++iter) {
-        if (this->nodeList.contains(iter->first)) {
+        if (this->nodeList.contains(iter->first) && this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->first)->includeEdge(iter->second);
-        }
-        if (this->nodeList.contains(iter->second)) {
             this->nodeList.at(iter->second)->includeEdge(iter->first);
+
+            alteredNodeTypeIDList[iter->first] = true;
+            alteredNodeTypeIDList[iter->second] = true;
         }
+    }
+
+    for (auto iter = alteredNodeTypeIDList.begin(); iter != alteredNodeTypeIDList.end(); ++iter) {
+        this->nodeList.at(iter->first)->flushLinkedNodes();
     }
 }
 
@@ -1017,6 +1072,7 @@ void Graph::flush() {
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {
         this->visitedNodeTypeIDCountList.clear();
+        this->randomEngineList.clear();
 
         // 按照支持的最大线程数创建节点访问次数列表
         // 会在maxWalkBeginNodeCount个数的基础上多申请一个HashMap，用于多个HashMap合并时的存储
@@ -1031,6 +1087,8 @@ void Graph::flush() {
             }
             // 将该记录有图中全部节点初始访问次数的HashMap放入列表
             this->visitedNodeTypeIDCountList.emplace_back(countMap);
+            // 生成当前线程编号对应的随机数引擎
+            this->randomEngineList.emplace_back(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()));
         }
     } else {
         this->walkingSequence.clear();
