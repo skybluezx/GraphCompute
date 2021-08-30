@@ -109,7 +109,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(beginNodeType.append(beginNodeID))) {
+                            if (!this->nodeList.contains(beginNodeType + beginNodeID)) {
                                 // 不存在则创建起点对应的点对象
                                 beginNode = new Node(beginNodeType, beginNodeID);
                                 // 将创建的点增加至全局点字典
@@ -122,13 +122,13 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[beginNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                beginNode = this->nodeList[beginNodeType.append(beginNodeID)];
+                                beginNode = this->nodeList[beginNodeType + beginNodeID];
                             }
 
                             // 初始化终点
                             Node *endNode = nullptr;
                             // 判断终点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(endNodeType.append(endNodeID))) {
+                            if (!this->nodeList.contains(endNodeType + endNodeID)) {
                                 // 不存在则创建终点对应的点对象
                                 endNode = new Node(endNodeType, endNodeID);
                                 // 将创建的点增加至全局点字典
@@ -141,7 +141,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[endNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                endNode = this->nodeList[endNodeType.append(endNodeID)];
+                                endNode = this->nodeList[endNodeType + endNodeID];
                             }
 
                             // 将当前边增加至起点和终点的链表中
