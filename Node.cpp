@@ -12,7 +12,7 @@ Node::Node() = default;
 Node::Node(const std::string &id, const std::string &type)
         : id(id), type(type){
     this->vistedCount = 0;
-    this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+//    this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     this->canVisitFlag = true;
 }
 
@@ -34,18 +34,24 @@ const std::vector<std::pair<Node *, bool>> &Node::getLinkedNodeList() const {
     return this->linkedNodeList;
 }
 
-const std::unordered_map<std::string, std::pair<std::vector<Node *>, std::uniform_int_distribution<unsigned>>> &Node::getLinkedNodeMapList() const {
+const std::unordered_map<std::string, std::vector<Node *>> &Node::getLinkedNodeMapList() const {
     return this->linkedNodeMapList;
 }
 
 const std::vector<Node*> Node::getLinkedNodeMapList(const std::vector<std::string> &typeList) const {
     std::vector<Node*> nodeList;
 
+//    for (auto i = 0; i < typeList.size(); ++i) {
+//        if (this->linkedNodeMapList.contains(typeList[i])) {
+//            nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
+//        }
+//    }
     for (auto i = 0; i < typeList.size(); ++i) {
         if (this->linkedNodeMapList.contains(typeList[i])) {
-            nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
+            nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).begin(), this->linkedNodeMapList.at(typeList[i]).end());
         }
     }
+
 
     return nodeList;
 }
@@ -57,9 +63,9 @@ void Node::addEdge(Node *const &node) {
         this->linkedNodeList.push_back(std::pair(node, true));
 
         if (!this->linkedNodeMapList.contains(node->type)) {
-            this->linkedNodeMapList[node->type] = std::pair(std::vector<Node*>(), std::uniform_int_distribution<unsigned>());
+            this->linkedNodeMapList[node->type] = std::vector<Node*>();
         }
-        std::vector<Node*> &nodeList = this->linkedNodeMapList[node->type].first;
+        std::vector<Node*> &nodeList = this->linkedNodeMapList[node->type];
         if (std::find(nodeList.begin(), nodeList.end(), node) == nodeList.end()) {
             // 不存在则添加
             nodeList.push_back(node);
@@ -129,41 +135,45 @@ int Node::getVisitedCount() const {
 }
 
 bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::string &type) {
-    // 链表选择为O(1)
-    // 边选择策略为O(n)，其中n为4（因为目前有四种边选择策略）
-    nextNode = nullptr;
-    if (this->linkedNodeMapList.contains(type)) {
-        return Node::getNextLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, strategy, this->randomEngine,
-                                       this->linkedNodeMapList.at(type).second);
-    } else {
-        return false;
-    }
+//    // 链表选择为O(1)
+//    // 边选择策略为O(n)，其中n为4（因为目前有四种边选择策略）
+//    nextNode = nullptr;
+//    if (this->linkedNodeMapList.contains(type)) {
+//        return Node::getNextLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, strategy, this->randomEngine,
+//                                       this->linkedNodeMapList.at(type).second);
+//    } else {
+//        return false;
+//    }
+    return false;
 }
 
 bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode, const std::vector<std::string> &typeList) {
-    // 链表合并选择为O(n)，n为设置类型个数，设计在内存中创建合并后链表，也会带来耗时
-    // 边选择策略为O(m)，其中m为4（因为目前有四种边选择策略）
-    nextNode = nullptr;
-    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
-    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
-    return Node::getNextLinkedNode(nodeList, nextNode, strategy, this->randomEngine, randomDistribution);
+//    // 链表合并选择为O(n)，n为设置类型个数，设计在内存中创建合并后链表，也会带来耗时
+//    // 边选择策略为O(m)，其中m为4（因为目前有四种边选择策略）
+//    nextNode = nullptr;
+//    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
+//    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
+//    return Node::getNextLinkedNode(nodeList, nextNode, strategy, this->randomEngine, randomDistribution);
+    return false;
 }
 
 bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type) {
-    nextNode = nullptr;
-    if (this->linkedNodeMapList.contains(type)) {
-        return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, this->randomEngine,
-                                             this->linkedNodeMapList.at(type).second);
-    } else {
-        return false;
-    }
+//    nextNode = nullptr;
+//    if (this->linkedNodeMapList.contains(type)) {
+//        return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, this->randomEngine,
+//                                             this->linkedNodeMapList.at(type).second);
+//    } else {
+//        return false;
+//    }
+return false;
 }
 
 bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList) {
-    nextNode = nullptr;
-    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
-    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
-    return Node::getNextRandomLinkedNode(nodeList, nextNode, this->randomEngine, randomDistribution);
+//    nextNode = nullptr;
+//    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
+//    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
+//    return Node::getNextRandomLinkedNode(nodeList, nextNode, this->randomEngine, randomDistribution);
+return false;
 }
 
 void Node::reset(const bool &onlyVisitedCount) {
@@ -230,16 +240,17 @@ void Node::flushLinkedNodes() {
             if (!this->linkedNodeMapList.contains(this->linkedNodeList[i].first->getType())) {
                 // 不存在则创建空链表
                 // 同时放入默认初始化的离散均分布器
-                this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::pair(std::vector<Node *>(), std::uniform_int_distribution<unsigned>());
+//                this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::pair(std::vector<Node *>(), std::uniform_int_distribution<unsigned>());
+                this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::vector<Node *>();
             }
             // 将当前节点加入分类型链表
-            this->linkedNodeMapList[this->linkedNodeList[i].first->getType()].first.push_back(this->linkedNodeList[i].first);
+            this->linkedNodeMapList[this->linkedNodeList[i].first->getType()].push_back(this->linkedNodeList[i].first);
         }
     }
-    // 按照费类型链表长度生成最终离散均匀分布并替代默认初始化的离散均匀分布
-    for (auto iter = this->linkedNodeMapList.begin(); iter != this->linkedNodeMapList.end(); ++iter) {
-        iter->second.second = std::uniform_int_distribution<unsigned>(0, iter->second.first.size() - 1);
-    }
+//    // 按照费类型链表长度生成最终离散均匀分布并替代默认初始化的离散均匀分布
+//    for (auto iter = this->linkedNodeMapList.begin(); iter != this->linkedNodeMapList.end(); ++iter) {
+//        iter->second.second = std::uniform_int_distribution<unsigned>(0, iter->second.first.size() - 1);
+//    }
 }
 
 bool Node::getNextLinkedNode(const std::vector<Node *> &nodeList,
