@@ -1,6 +1,6 @@
 #!/bin/bash
 
-server_name="v5_restart"
+server_name="jiahao"
 #env="macos-clang-12.0.5"
 env="centos7-gcc-10.3.0"
 base_path=/home/work/zhanghaonan/graphcompute

@@ -1,7 +1,7 @@
-server_name="v5_restart"
-prune_name="base"
+server_name="v5_exp_knowledge_new_jh"
+prune_name="v5_exp_knowledge_jh"
 env="centos7-gcc-10.3.0"
-use_restartRatios=1
+use_restartRatios=0
 base_path=/home/work/zhanghaonan/graphcompute
 exp_input_path=$base_path/exp/prune_input/$prune_name
 task_path=$base_path/task/${server_name}
@@ -20,12 +20,11 @@ fi
 #restartRatios=(0 0.02 0.01 0.005 0.001)
 #restartRatios=(0 0.001 0.002 0.005 0.01 0.02 0.03 0.04 0.05)
 if [[ $use_restartRatios -eq 1 ]]; then
-  #restartRatios=(0 0.002 0.004 0.006 0.008 0.01 0.012 0.014 0.016 0.018 0.02 0.022 0.024 0.026 0.028 0.030 0.032 0.034 0.036 0.038 0.04)
-  restartRatios=(0 0.01 0.02 0.030 0.04 0.05 0.10 0.15 0.20 0.25 0.3)
+  restartRatios=(0 0.002 0.004 0.006 0.008 0.01 0.012 0.014 0.016 0.018 0.02 0.022 0.024 0.026 0.028 0.030 0.032 0.034 0.036 0.038 0.04)
   walkLengthRatios=(-10000)
 else
   restartRatios=(0)
-  walkLengthRatios=(-10 -15 -20 -30 -50 -100 -200 -500 -1000)
+  walkLengthRatios=(1)
 fi
 
 echo running
@@ -49,7 +48,7 @@ do
       if [[ $use_restartRatios -eq 1 ]]; then
         python $base_path/py_script/result_check_base.py -file_path ${kp_question_recall_result_directory} > $base_path/exp/result/${server_name}/GC_${restartRatio}_${walkLengthRatio}_$file
       else
-        python $base_path/py_script/result_check_base.py -file_path ${kp_question_recall_result_directory} > $base_path/exp/result/${server_name}/GC_${walkLengthRatio}_$file
+        python $base_path/py_script/result_check_base.py -file_path ${kp_question_recall_result_directory} > $base_path/exp/result/${server_name}/GC_$file
       fi
     done
   done
