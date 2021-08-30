@@ -435,11 +435,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         // 多线程生成每个开始点的游走结果
                         std::vector<std::thread> threadList;
                         for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
-                            // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                            std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType, threadNumList[threadIndex]);
-
                             std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
-                            threadList.emplace_back(Command::visitedCountListToFile, std::move(result), targetNodeType, filePath, visitedCountTopN);
+                            threadList.emplace_back(Command::visitedCountListToFile,
+                                                    std::cref(graph),
+                                                    std::cref(threadNumList[threadIndex]),
+                                                    std::cref(targetNodeType),
+                                                    std::move(filePath),
+                                                    std::cref(visitedCountTopN));
                         }
                         for (auto j = 0; j < threadList.size(); ++j) {
                             if (threadList[j].joinable()) {
@@ -477,11 +479,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     // 多线程生成每个开始点的游走结果
                     std::vector<std::thread> threadList;
                     for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
-                        // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-                        std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(targetNodeType, threadNumList[threadIndex]);
-
                         std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
-                        threadList.emplace_back(Command::visitedCountListToFile, std::move(result), targetNodeType, filePath, visitedCountTopN);
+                        threadList.emplace_back(Command::visitedCountListToFile,
+                                                std::cref(graph),
+                                                std::cref(threadNumList[threadIndex]),
+                                                std::cref(targetNodeType),
+                                                std::move(filePath),
+                                                std::cref(visitedCountTopN));
                     }
                     for (auto j = 0; j < threadList.size(); ++j) {
                         if (threadList[j].joinable()) {
@@ -647,14 +651,16 @@ std::vector<std::string> Command::questionRecallTargetNodeTypeList;
 // 每一路召回对应的总步数切分策略
 std::vector<bool> Command::questionRecallIsSplitStepCountList;
 
-void Command::visitedCountListToFile(std::vector<std::pair<std::string, int>> visitedCountList, const std::string nodeType, const std::string filePath, const unsigned int visitedCountTopN) {
-        // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
-        unsigned int count = visitedCountTopN;
-        if (count > visitedCountList.size()) count = visitedCountList.size();
-        std::ofstream resultFile;
-        resultFile.open(filePath);
-        for (auto i = 0; i < count; ++i) {
-            resultFile << visitedCountList[i].first << ":" << visitedCountList[i].second << std::endl;
-        }
-        resultFile.close();
+void Command::visitedCountListToFile(const Graph &graph, const int &threadNumList, const std::string &nodeType, const std::string filePath, const unsigned int &visitedCountTopN) {
+    std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(nodeType, threadNumList);
+
+    // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
+    unsigned int count = visitedCountTopN;
+    if (count > result.size()) count = result.size();
+    std::ofstream resultFile;
+    resultFile.open(filePath);
+    for (auto i = 0; i < count; ++i) {
+        resultFile << result[i].first << ":" << result[i].second << std::endl;
+    }
+    resultFile.close();
 }
