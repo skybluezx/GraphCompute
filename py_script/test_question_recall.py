@@ -45,13 +45,13 @@ def get_test_recall_task_json(courseware_main_kp_list, save_dir_path, stepDefine
 
         task_json["targetNodeType"] = "Question"
 
-        task_json["walkLengthRatio"] = visitedCountTopN
+        task_json["visitedCountTopN"] = visitedCountTopN
 
-        print(task_json)
-        break
+        # print(task_json)
+        # break
 
-        # with open(save_dir_path + "/" + cw + '.json', 'w') as f:
-        #     json.dump(task_json, f)
+        with open(save_dir_path + "/" + cw + '.json', 'w') as f:
+            json.dump(task_json, f)
 
 
 if __name__ == "__main__":
