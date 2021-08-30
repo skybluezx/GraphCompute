@@ -319,7 +319,7 @@ void Graph::walk(const std::string &beginNodeType,
     if (walkLengthRatio > 0 && walkLengthRatio <= 1) {
         // 如果步长参数大等于0则计算开始点的度数与该参数的乘积作为本次步长
         // 开始点的度数只考虑步长定义中该开始点之后的第二类节点的个数
-        walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).first.size() * walkLengthRatio;
+        walkingLength = beginNode->getLinkedNodeMapList().at(stepDefine[1]).size() * walkLengthRatio;
     } else if (walkLengthRatio == 0) {
         // 单次游走步长定义为0则不限制单次游走步长
         walkingLength = totalStepCount;
@@ -521,7 +521,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             if (auxiliaryEdge.contains(currentNode->getType())) {
                 if (currentNode->getLinkedNodeMapList().contains(currentNode->getType())) {
                     Node *auxiliaryNode;
-                    const std::vector<Node*> &nextNodeList = currentNode->getLinkedNodeMapList().at(auxiliaryEdge.at(currentNode->getType())).first;
+                    const std::vector<Node*> &nextNodeList = currentNode->getLinkedNodeMapList().at(auxiliaryEdge.at(currentNode->getType()));
                     // 判断当前点是否存在符合步长定义的下一个节点
                     if (nextNodeList.size() > 0) {
                         std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
@@ -535,7 +535,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                         // 从辅助点返回
                         // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
                         if (auxiliaryNode->getLinkedNodeMapList().contains(currentNode->getType())) {
-                            const std::vector<Node*> &nextNodeList = auxiliaryNode->getLinkedNodeMapList().at(currentNode->getType()).first;
+                            const std::vector<Node*> &nextNodeList = auxiliaryNode->getLinkedNodeMapList().at(currentNode->getType());
                             if (nextNodeList.size() > 0) {
                                 std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
                                 currentNode = nextNodeList[randomIntDistribution(randomEngine)];
@@ -1086,7 +1086,7 @@ void Graph::flush() {
             // 建立当前节点的分类型度数列表
             this->nodeDegreeList[iter->first] = std::map<std::string, int>();
             // 存储当前节点的分类型度数
-            this->nodeDegreeList[iter->first][subIter->first] = subIter->second.first.size();
+            this->nodeDegreeList[iter->first][subIter->first] = subIter->second.size();
 
             // 判断当前节点的类型在分类型最大度数列表中是否存在
             if (!this->nodeTypeMaxDegreeList.contains(iter->second->getType())) {
@@ -1096,12 +1096,12 @@ void Graph::flush() {
             // 判断当前节点类型的分类型最大度数列表中对应类型的最大度数是否存在
             if (!this->nodeTypeMaxDegreeList[iter->second->getType()].contains(subIter->first)) {
                 // 不存在则将当前节点类型的当前链接点类型的度数存入
-                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.first.size();
+                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.size();
             }
             // 判断当前节点的当前链接点类型的度数是否大于当前节点类型分类型最大度数列表中对应的最大度数
-            if (subIter->second.first.size() > this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first]) {
+            if (subIter->second.size() > this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first]) {
                 // 若大于则更新
-                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.first.size();
+                this->nodeTypeMaxDegreeList[iter->second->getType()][subIter->first] = subIter->second.size();
             }
         }
     }
