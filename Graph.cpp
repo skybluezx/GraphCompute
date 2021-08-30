@@ -105,14 +105,14 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                         if (beginNodeTypeFlag && beginNodeIDFlag && endNodeTypeFlag && endNodeIDFlag) {
                             // 累加当前已读取总边数
                             currentEdgeCount++;
-
-                            // 初始化起点
+                            
+			    // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(beginNodeType + beginNodeID)) {
-                                // 不存在则创建起点对应的点对象
-                                beginNode = new Node(beginNodeType, beginNodeID);
-                                // 将创建的点增加至全局点字典
+                            if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
+				// 不存在则创建起点对应的点对象
+                                beginNode = new Node(beginNodeID, beginNodeType);
+				// 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
                                 // 累加当前点对应类型的总节点数
@@ -122,15 +122,15 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[beginNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                beginNode = this->nodeList[beginNodeType + beginNodeID];
+                                beginNode = this->nodeList[beginNodeType + ":" + beginNodeID];
                             }
 
                             // 初始化终点
                             Node *endNode = nullptr;
                             // 判断终点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(endNodeType + endNodeID)) {
+                            if (!this->nodeList.contains(endNodeType + ":" + endNodeID)) {
                                 // 不存在则创建终点对应的点对象
-                                endNode = new Node(endNodeType, endNodeID);
+                                endNode = new Node(endNodeID, endNodeType);
                                 // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
 
@@ -141,7 +141,7 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[endNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                endNode = this->nodeList[endNodeType + endNodeID];
+                                endNode = this->nodeList[endNodeType + ":" + endNodeID];
                             }
 
                             // 将当前边增加至起点和终点的链表中
