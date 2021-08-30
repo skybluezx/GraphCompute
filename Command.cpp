@@ -383,6 +383,15 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             }
             resultFile.close();
         } else {
+            // 初始化当前线程索引为0
+            unsigned int threadNum = 0;
+            // 初始化线程索引数组
+            std::vector<unsigned int> threadNumList;
+            // 初始化每次游走开始点列表
+            std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup(beginNodeTypeList.size());
+            // 初始化每次游走的线程索引与开始点ID的对应关系
+            std::map<unsigned int, std::string> threadBeginNodeIDList;
+
             // 遍历开始点类型
             for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
                 // 清理结果目录
@@ -398,27 +407,15 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                 }
                 boost::filesystem::create_directory(resultDirectoryPath + '/' + std::to_string(i));
 
-                // 初始化当前线程索引为0
-                unsigned int threadNum = 0;
-                // 初始化线程索引数组
-                std::vector<unsigned int> threadNumList;
-                // 初始化每次游走开始点列表
-                std::map<std::string, double> currentBeginNodeIDList;
-                // 初始化每次游走的线程索引与开始点ID的对应关系
-                std::map<unsigned int, std::string> threadBeginNodeIDList;
-
                 // 根据图支持的最大并行开始点个数遍历游走轮数
                 for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
-                    currentBeginNodeIDList[iter->first] = iter->second;
+                    currentBeginNodeIDListGroup[i][iter->first] = iter->second;
                     threadBeginNodeIDList[threadNum] = iter->first;
                     threadNumList.emplace_back(threadNum);
                     threadNum++;
 
                     // 判断是否凑够最大并行数能够开启一次多线程游走
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
-                        std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
-                        currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
-
                         // 游走
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                         graph.multiWalk(beginNodeTypeList,
@@ -455,15 +452,12 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         // 重新开始遍历
                         threadNum = 0;
                         threadNumList.clear();
-                        currentBeginNodeIDList.clear();
+                        currentBeginNodeIDListGroup = std::vector<std::map<std::string, double>>(beginNodeTypeList.size());
                     }
                 }
 
                 // 判断是否还有未凑够最大并行游走
                 if (threadNum != 0) {
-                    std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup;
-                    currentBeginNodeIDListGroup.emplace_back(currentBeginNodeIDList);
-
                     // 游走
                     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     graph.multiWalk(beginNodeTypeList,
@@ -494,11 +488,6 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                             threadList[j].join();
                         }
                     }
-                    threadList.clear();
-
-                    threadNum = 0;
-                    threadNumList.clear();
-                    currentBeginNodeIDList.clear();
                 }
             }
         }
