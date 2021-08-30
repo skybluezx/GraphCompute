@@ -54,7 +54,6 @@ public:
      * 返回该点的分类型邻接表
      * @return
      */
-//    const std::unordered_map<std::string, std::pair<std::vector<Node *>, std::uniform_int_distribution<unsigned>>> &getLinkedNodeMapList() const;
     const std::unordered_map<std::string, std::vector<Node *>> &getLinkedNodeMapList() const;
 
 
@@ -196,18 +195,12 @@ private:
     // value为对应type对应的连接点对象的指针列表
     // 由于该指针对应的内容均为Graph对象创建，由Graph对象负责维护
     // 所以在Node对象中不应该将其中的指针重指向其他点，否则将出现野指针
-//    std::unordered_map<std::string, std::pair<std::vector<Node *>, std::uniform_int_distribution<unsigned>>> linkedNodeMapList;
     std::unordered_map<std::string, std::vector<Node *>> linkedNodeMapList;
 
     /**
      * 图遍历或游走的状态信息
      */
     unsigned int vistedCount;
-
-    /**
-     * 随机引擎
-     */
-    //std::default_random_engine randomEngine;
 
     /**
      * 私有方法

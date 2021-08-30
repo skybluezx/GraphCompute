@@ -12,7 +12,6 @@ Node::Node() = default;
 Node::Node(const std::string &id, const std::string &type)
         : id(id), type(type){
     this->vistedCount = 0;
-//    this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
     this->canVisitFlag = true;
 }
 
@@ -41,17 +40,11 @@ const std::unordered_map<std::string, std::vector<Node *>> &Node::getLinkedNodeM
 const std::vector<Node*> Node::getLinkedNodeMapList(const std::vector<std::string> &typeList) const {
     std::vector<Node*> nodeList;
 
-//    for (auto i = 0; i < typeList.size(); ++i) {
-//        if (this->linkedNodeMapList.contains(typeList[i])) {
-//            nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).first.begin(), this->linkedNodeMapList.at(typeList[i]).first.end());
-//        }
-//    }
     for (auto i = 0; i < typeList.size(); ++i) {
         if (this->linkedNodeMapList.contains(typeList[i])) {
             nodeList.insert(nodeList.end(), this->linkedNodeMapList.at(typeList[i]).begin(), this->linkedNodeMapList.at(typeList[i]).end());
         }
     }
-
 
     return nodeList;
 }
@@ -61,15 +54,6 @@ void Node::addEdge(Node *const &node) {
     // 判断待添加边对应的连接点是否已存在
     if (node != nullptr) {
         this->linkedNodeList.push_back(std::pair(node, true));
-
-        if (!this->linkedNodeMapList.contains(node->type)) {
-            this->linkedNodeMapList[node->type] = std::vector<Node*>();
-        }
-        std::vector<Node*> &nodeList = this->linkedNodeMapList[node->type];
-        if (std::find(nodeList.begin(), nodeList.end(), node) == nodeList.end()) {
-            // 不存在则添加
-            nodeList.push_back(node);
-        }
     }
 }
 
@@ -239,18 +223,12 @@ void Node::flushLinkedNodes() {
             // 判断分类型链表中当前节点对应类型的链表是否存在
             if (!this->linkedNodeMapList.contains(this->linkedNodeList[i].first->getType())) {
                 // 不存在则创建空链表
-                // 同时放入默认初始化的离散均分布器
-//                this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::pair(std::vector<Node *>(), std::uniform_int_distribution<unsigned>());
                 this->linkedNodeMapList[this->linkedNodeList[i].first->getType()] = std::vector<Node *>();
             }
             // 将当前节点加入分类型链表
             this->linkedNodeMapList[this->linkedNodeList[i].first->getType()].push_back(this->linkedNodeList[i].first);
         }
     }
-//    // 按照费类型链表长度生成最终离散均匀分布并替代默认初始化的离散均匀分布
-//    for (auto iter = this->linkedNodeMapList.begin(); iter != this->linkedNodeMapList.end(); ++iter) {
-//        iter->second.second = std::uniform_int_distribution<unsigned>(0, iter->second.first.size() - 1);
-//    }
 }
 
 bool Node::getNextLinkedNode(const std::vector<Node *> &nodeList,

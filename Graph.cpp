@@ -57,37 +57,61 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                 LOG(INFO) << "读取文件：" << filePath.filename();
 
                 // 打开文件
-                std::ifstream graphDefineFile(filePathString, std::ios::in);
+                std::ifstream graphDefineFile(filePathString, std::ios::binary);
+
                 // 判断图定义文件打开是否成功
                 if (!graphDefineFile.is_open()) {
                     // 打开失败则输出错误日志
                     LOG(ERROR) << "文件读取失败！";
                 } else {
+                    std::vector<char> buf(graphDefineFile.seekg(0, std::ios::end).tellg());
+                    graphDefineFile.seekg(0, std::ios::beg).read(&buf[0], static_cast<std::streamsize>(buf.size()));
+                    // 关闭文件
+                    graphDefineFile.close();
+
                     // 遍历图定义文件的全部行
                     // 每一行为一个边描述
-                    std::string line;
-                    while (std::getline(graphDefineFile, line)) {
-                        // 空行跳过
-                        if (line.empty()) {
-                            continue;
+
+                    std::string beginNodeType, beginNodeID, endNodeType, endNodeID;
+                    bool beginNodeTypeFlag = false, beginNodeIDFlag = false, endNodeTypeFlag = false, endNodeIDFlag = false;
+                    auto beginIter = buf.begin();
+                    for (auto iter = buf.begin(); iter != buf.end(); ++iter) {
+                        if (*iter == ':') {
+                            if (!beginNodeTypeFlag) {
+                                beginNodeType.insert(beginNodeType.begin(), beginIter, iter);
+                                beginNodeTypeFlag = true;
+                            } else {
+                                endNodeType.insert(endNodeType.begin(), beginIter, iter);
+                                endNodeTypeFlag = true;
+                            }
+
+                            beginIter = iter + 1;
                         }
-                        // 切分图定义文件的行
-                        std::vector<std::string> lineItemList = Util::stringSplitToVector(line, "\t");
-                        // 判断行格式是否准确
-                        if (lineItemList.size() != 2) {
-                            // 输出错误日志
-                            LOG(ERROR) << "节点/边定义格式错误！";
-                        } else {
-                            // 获得边对应起点和终点的定义对
-                            std::vector<std::string> beginNodePair = Util::stringSplitToVector(lineItemList[0], ":");
-                            std::vector<std::string> endNodePair = Util::stringSplitToVector(lineItemList[1], ":");
+
+                        if (*iter == '\t') {
+                            beginNodeID.insert(beginNodeID.begin(), beginIter, iter);
+                            beginNodeIDFlag = true;
+
+                            beginIter = iter + 1;
+                        }
+
+                        if (*iter == '\n') {
+                            endNodeID.insert(endNodeID.begin(), beginIter, iter);
+                            endNodeIDFlag = true;
+
+                            beginIter = iter + 1;
+                        }
+
+                        if (beginNodeTypeFlag && beginNodeIDFlag && endNodeTypeFlag && endNodeIDFlag) {
+                            // 累加当前已读取总边数
+                            currentEdgeCount++;
 
                             // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(beginNodePair[0] + ":" + beginNodePair[1])) {
+                            if (!this->nodeList.contains(beginNodeType.append(beginNodeID))) {
                                 // 不存在则创建起点对应的点对象
-                                beginNode = new Node(beginNodePair[1], beginNodePair[0]);
+                                beginNode = new Node(beginNodeType, beginNodeID);
                                 // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
@@ -98,15 +122,15 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[beginNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                beginNode = this->nodeList[beginNodePair[0] + ":" + beginNodePair[1]];
+                                beginNode = this->nodeList[beginNodeType.append(beginNodeID)];
                             }
 
                             // 初始化终点
                             Node *endNode = nullptr;
                             // 判断终点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(endNodePair[0] + ":" + endNodePair[1])) {
+                            if (!this->nodeList.contains(endNodeType.append(endNodeID))) {
                                 // 不存在则创建终点对应的点对象
-                                endNode = new Node(endNodePair[1], endNodePair[0]);
+                                endNode = new Node(endNodeType, endNodeID);
                                 // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
 
@@ -117,31 +141,35 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                                 this->nodeTypeCountList[endNode->getType()] += 1;
                             } else {
                                 // 存在则获取已存在的点
-                                endNode = this->nodeList[endNodePair[0] + ":" + endNodePair[1]];
+                                endNode = this->nodeList[endNodeType.append(endNodeID)];
                             }
 
                             // 将当前边增加至起点和终点的链表中
                             beginNode->addEdge(endNode);
                             endNode->addEdge(beginNode);
 
-                            // 累加当前已读取总边数
-                            currentEdgeCount++;
+                            beginNodeTypeFlag = false;
+                            beginNodeIDFlag = false;
+                            endNodeTypeFlag = false;
+                            endNodeIDFlag = false;
+
+                            beginNodeType.clear();
+                            beginNodeID.clear();
+                            endNodeType.clear();
+                            endNodeID.clear();
 
 #ifdef INFO_LOG_OUTPUT
                             LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
 #endif
-
-                            // 判断是否已读取配置文件中配置的最大边数
-                            if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
-                                // 若已读取最大边数退出不在读取
-                                break;
-                            }
+                        }
+                        // 判断是否已读取配置文件中配置的最大边数
+                        if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
+                            // 若已读取最大边数退出不在读取
+                            break;
                         }
                     }
-                    LOG(INFO) << "文件读取完成！";
                 }
-                // 关闭文件
-                graphDefineFile.close();
+                LOG(INFO) << "文件读取完成！";
             }
 
             // 判断是否已读取配置文件中配置的最大边数
