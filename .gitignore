@@ -22,7 +22,7 @@ exp/result/*
 exp/prune_input/*
 result/*
 log/*
-
+*.tar
 *.dat
 *.csv
 *.json
