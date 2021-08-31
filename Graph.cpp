@@ -17,7 +17,7 @@
 #include "Util.h"
 #include "Node.h"
 
-Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount, const int &maxWalkBeginNodeCount) : resultType(resultType), maxWalkBeginNodeCount(maxWalkBeginNodeCount) {
+Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount, const int &initNodeCount, const int &maxWalkBeginNodeCount) : resultType(resultType), maxWalkBeginNodeCount(maxWalkBeginNodeCount) {
     // 设置图定义文件的路径
     std::filesystem::path path(graphDefineFileDirectoryPath);
     // 判断图定义文件的路径是否存在
@@ -26,7 +26,9 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
         LOG(ERROR) << "图定义目录不存在！";
     } else {
         // 路径存在
-
+        if (initNodeCount > 0) {
+	    this->nodeList.reserve(initNodeCount);
+        }
         // 初始化当前已读取边数
         int currentEdgeCount = 0;
         // 遍历图定义文件所在目录的全部图定义文件
@@ -95,13 +97,13 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             // 累加当前已读取总边数
                             currentEdgeCount++;
                             
-			                // 初始化起点
+			    // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
                             if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
-				                // 不存在则创建起点对应的点对象
+			                        // 不存在则创建起点对应的点对象
                                 beginNode = new Node(beginNodeID, beginNodeType);
-				                // 将创建的点增加至全局点字典
+			                        // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
                                 // 累加当前点对应类型的总节点数
@@ -182,7 +184,7 @@ Graph::~Graph() {
     this->nodeList.erase(this->nodeList.begin(), this->nodeList.end());
 }
 
-const std::map<const std::string, Node *const> &Graph::getNodeList() const {
+const std::unordered_map<std::string, Node*> &Graph::getNodeList() const {
     return this->nodeList;
 }
 
@@ -215,11 +217,11 @@ const std::map<std::string, unsigned> &Graph::getNodeTypeCountList() const {
     return this->nodeTypeCountList;
 }
 
-const std::map<std::string, std::map<std::string, int>> &Graph::getNodeDegreeList() const {
+const std::unordered_map<std::string, std::map<std::string, int>> &Graph::getNodeDegreeList() const {
     return this->nodeDegreeList;
 }
 
-const std::map<std::string, std::map<std::string, int>> &Graph::getNodeTypeMaxDegreeList() const {
+const std::unordered_map<std::string, std::map<std::string, int>> &Graph::getNodeTypeMaxDegreeList() const {
     return this->nodeTypeMaxDegreeList;
 }
 
@@ -1064,6 +1066,7 @@ void Graph::flush() {
         this->typeNodeList[iter->first].reserve(iter->second);
     }
 
+    this->nodeDegreeList.reserve(this->nodeList.size());
     // 遍历图中全部节点
     for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
         // 将当前节点接入对应的类型链表
@@ -1072,7 +1075,7 @@ void Graph::flush() {
         // 刷新当前点
         // 生成每个点的分类型链表（包括去掉分类型链表、每个链表的随机数分布器）
         iter->second->flushLinkedNodes();
-
+	
         // 遍历当前点的分类型链表
         for (auto subIter = iter->second->getLinkedNodeMapList().begin(); subIter != iter->second->getLinkedNodeMapList().end(); ++subIter) {
             // 建立当前节点的分类型度数列表
@@ -1113,6 +1116,7 @@ void Graph::flush() {
         for (auto i = 0; i <= maxWalkBeginNodeCount; ++i) {
             // 生成当前线程的节点访问HashMap
             std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
+            countMap.reserve(this->nodeList.size());
             // 将图中全部未排除节点的访问次数置零
             for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
                 if (iter->second->canVisit()) {

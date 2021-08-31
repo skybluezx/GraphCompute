@@ -1,3 +1,4 @@
+# *-* coding:utf8 *-*
 import os
 import json
 
@@ -77,17 +78,17 @@ def kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_f
         positive_sum += len(test_courseware_question_list[courseware_id])
 
     # 输出召回指标
-    print('Recall Count: ', recall_sum, 'Positive Count: ', positive_sum, 'Recall Ratio: ', recall_sum / positive_sum)
+    print('Recall Count: ', recall_sum, 'Positive Count: ', positive_sum, 'Recall Ratio: ', recall_sum * 1.0 / positive_sum)
 
 
 if __name__ == '__main__':
     # 知识点推题的题目列表文件目录路径
     # 每个文件为一个知识点的推题结果
-    kp_question_recall_result_directory = '/Users/zhaixiao/workplace/c_cpp/GraphCompute/result/main'
+    kp_question_recall_result_directory = '/home/work/zhaixiao/workplace/GraphCompute/build/0831result/0.0_100000_aux'
     # 测试集中知识点-课件-题目的映射文件路径
-    test_kp_courseware_question_file_path = '/Users/zhaixiao/workplace/c_cpp/GraphCompute/test_data/kp_courseware_question.json'
+    test_kp_courseware_question_file_path = '/home/work/zhaixiao/workplace/GraphCompute/build/test_data/kp_courseware_question.json'
 
     # 设置召回题目的TopN
-    recall_top_n_list = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    recall_top_n_list = [100]
     for n in recall_top_n_list:
         kp_recall(kp_question_recall_result_directory, test_kp_courseware_question_file_path, n)

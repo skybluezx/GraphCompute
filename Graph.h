@@ -29,7 +29,7 @@ public:
      * @param readEdgeCount                 读取的最大边数（小等于0表示读取目录中的全部边，大于0表示读取对应个数的边）
      * @param maxWalkBeginNodeCount         并行游走支持的最大起点个数（默认为0则表示不开启并行游走）
      */
-    explicit Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType="walking_sequence", const int &readEdgeCount = -1, const int &maxWalkBeginNodeCount=1);
+    explicit Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType="walking_sequence", const int &readEdgeCount = -1, const int &initNodeCount=0, const int &maxWalkBeginNodeCount=1);
 
     /**
      * 析构方法
@@ -44,7 +44,7 @@ public:
      * Value为指向节点对象的指针常量
      * @return
      */
-    const std::map<const std::string, Node *const> &getNodeList() const;
+    const std::unordered_map<std::string, Node*> &getNodeList() const;
 
     /**
      * 获取当前图支持的最大并行开始点游走个数
@@ -86,14 +86,14 @@ public:
      * [依赖flush方法生成]
      * @return
      */
-    const std::map<std::string, std::map<std::string, int>> &getNodeDegreeList() const;
+    const std::unordered_map<std::string, std::map<std::string, int>> &getNodeDegreeList() const;
 
     /**
      * 获取当前图中全部节点类型对应的分类型最大度数列表
      * [依赖flush方法生成]
      * @return
      */
-    const std::map<std::string, std::map<std::string, int>> &getNodeTypeMaxDegreeList() const;
+    const std::unordered_map<std::string, std::map<std::string, int>> &getNodeTypeMaxDegreeList() const;
 
     /**
      * 获取图中节点的访问次数列表
@@ -332,7 +332,7 @@ private:
      * key为点的Type-ID
      * value为对应点的指针
      */
-    std::map<const std::string, Node *const> nodeList;
+    std::unordered_map<std::string, Node*> nodeList;
 
     /**
      * 图中节点的类型字典
@@ -355,12 +355,12 @@ private:
      * Key为节点TypeID
      * Value为该点的度数字典
      */
-    std::map<std::string, std::map<std::string, int>> nodeDegreeList;
+    std::unordered_map<std::string, std::map<std::string, int>> nodeDegreeList;
 
     /**
      * 图中不同类型点的最大度数
      */
-    std::map<std::string, std::map<std::string, int>> nodeTypeMaxDegreeList;
+    std::unordered_map<std::string, std::map<std::string, int>> nodeTypeMaxDegreeList;
 
     /**
      * 图操作结果类型
