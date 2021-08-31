@@ -18,17 +18,6 @@
 #include "Node.h"
 
 Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string &resultType, const int &readEdgeCount, const int &maxWalkBeginNodeCount) : resultType(resultType), maxWalkBeginNodeCount(maxWalkBeginNodeCount) {
-    /**
-     * 随机数生成的相关数据结构初始化
-     * 该部分随机数结构仅用于单线程模式下重启策略中随机数的生成
-     * - 游走过程中用于选择下一个点的随机数生成由每个Node中的随机数生成机制负责
-     * - 多线程模式下，不管是重启策略，还是下一个节点的选择，涉及到的随机数均有线程体负责生成，不复用主线程的任何结构
-     */
-    // 初始化随机引擎（目前用于游走过程中的重启策略）
-    this->randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    // 初始化随机数分布（目前初始化为0到1之间的实数）
-    this->randomDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
-
     // 设置图定义文件的路径
     std::filesystem::path path(graphDefineFileDirectoryPath);
     // 判断图定义文件的路径是否存在
@@ -106,13 +95,13 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             // 累加当前已读取总边数
                             currentEdgeCount++;
                             
-			    // 初始化起点
+			                // 初始化起点
                             Node *beginNode = nullptr;
                             // 判断起点ID是否在全局点字典中已存在
                             if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
-				// 不存在则创建起点对应的点对象
+				                // 不存在则创建起点对应的点对象
                                 beginNode = new Node(beginNodeID, beginNodeType);
-				// 将创建的点增加至全局点字典
+				                // 将创建的点增加至全局点字典
                                 this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
 
                                 // 累加当前点对应类型的总节点数
@@ -278,6 +267,9 @@ void Graph::walk(const std::string &beginNodeType,
                  const float &restartRatio,
                  const unsigned int &totalStepCount,
                  const bool &keepVisitedCount) {
+    // 初始化0到1之间实数的随机数分布（用于重启策略）
+    std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+
     if (!keepVisitedCount) {
         // 清空图中全部节点的状态
         this->reset();
@@ -397,7 +389,7 @@ void Graph::walk(const std::string &beginNodeType,
                 // 重启概率大于0时启动重启策略
                 // 生成0-1之间的随机数
                 // 判断随机数是否小于重启概率
-                if (this->randomDistribution(this->randomEngine) < restartRatio) {
+                if (randomDoubleDistribution(this->randomEngineList[0]) < restartRatio) {
                     // 小于则将当前游走的步数置为最大步数退出本次迭代
                     // 由于本次迭代步数已置为最大步数则将继续退出本次游走返回起点
 #ifdef INFO_LOG_OUTPUT

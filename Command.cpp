@@ -331,7 +331,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     threadNum++;
 
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
-                        // 游走
+                        // 多线程游走
                         graph.multiWalk(beginNodeTypeList,
                                         currentBeginNodeIDListGroup,
                                         stepDefineList,
@@ -416,7 +416,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
                     // 判断是否凑够最大并行数能够开启一次多线程游走
                     if (threadNum == graph.getMaxWalkBeginNodeCount()) {
-                        // 游走
+                        // 多线程游走
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                         graph.multiWalk(beginNodeTypeList,
                                         currentBeginNodeIDListGroup,
@@ -435,11 +435,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         // 多线程生成每个开始点的游走结果
                         std::vector<std::thread> threadList;
                         for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
+                            // 生成游走结果的保存路径
                             std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
                             threadList.emplace_back(Command::visitedCountListToFile,
                                                     std::cref(graph),
                                                     std::cref(threadNumList[threadIndex]),
                                                     std::cref(targetNodeType),
+                                                    // 不能是引用，因为filePath是在for循环内生成的，当前线程生成结束后filePath变量会失效
                                                     std::move(filePath),
                                                     std::cref(visitedCountTopN));
                         }
@@ -450,8 +452,8 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         }
                         threadList.clear();
 
-                        // 清空本次线程运行状态
-                        // 重新开始遍历
+                        // 清空本次多线程运行状态
+                        // 重新开始遍历下一批线程
                         threadNum = 0;
                         threadNumList.clear();
                         currentBeginNodeIDListGroup = std::vector<std::map<std::string, double>>(beginNodeTypeList.size());
@@ -460,7 +462,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
                 // 判断是否还有未凑够最大并行游走
                 if (threadNum != 0) {
-                    // 游走
+                    // 多线程游走
                     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     graph.multiWalk(beginNodeTypeList,
                                     currentBeginNodeIDListGroup,
@@ -479,11 +481,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                     // 多线程生成每个开始点的游走结果
                     std::vector<std::thread> threadList;
                     for (auto threadIndex = 0; threadIndex < threadNumList.size(); ++threadIndex) {
+                        // 生成游走结果的保存路径
                         std::string filePath = resultDirectoryPath + "/" + std::to_string(i) + "/" + beginNodeTypeList[i] + ":" + threadBeginNodeIDList[threadIndex] + "_result.dat";
                         threadList.emplace_back(Command::visitedCountListToFile,
                                                 std::cref(graph),
                                                 std::cref(threadNumList[threadIndex]),
                                                 std::cref(targetNodeType),
+                                                // 不能是引用，因为filePath是在for循环内生成的，当前线程生成结束后filePath变量会失效
                                                 std::move(filePath),
                                                 std::cref(visitedCountTopN));
                     }
@@ -651,9 +655,14 @@ std::vector<std::string> Command::questionRecallTargetNodeTypeList;
 // 每一路召回对应的总步数切分策略
 std::vector<bool> Command::questionRecallIsSplitStepCountList;
 
-void Command::visitedCountListToFile(const Graph &graph, const int &threadNumList, const std::string &nodeType, const std::string filePath, const unsigned int &visitedCountTopN) {
-    std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(nodeType, threadNumList);
-
+void Command::visitedCountListToFile(const Graph &graph,
+                                     const int &threadNum,
+                                     const std::string &nodeType,
+                                     // 不能是引用，否则将导致线程运行过程中该变量失效
+                                     const std::string filePath,
+                                     const unsigned int &visitedCountTopN) {
+    // 获取指定线程编号、指定节点类型的图计算结果
+    std::vector<std::pair<std::string, int>> result = graph.getSortedResultNodeTypeIDListByVisitedCount(nodeType, threadNum);
     // 输出游走序列中指定点按访问次数由大到小排序的TopN节点信息
     unsigned int count = visitedCountTopN;
     if (count > result.size()) count = result.size();

@@ -77,14 +77,15 @@ if __name__ == "__main__":
 
     # 获取全部课件的召回知识点和召回题目
     course_kp_list = get_test_courseware_main_kp(test_kp_courseware_question_file_path)
+
     # is_merge = True
     # stepDefine = [
-    #     ["KnowledgePoint", "Question"],
-    #     ["KnowledgePoint", "Question"]
+    #     ["KnowledgePoint", "Question", "Courseware"],
+    #     ["KnowledgePoint", "Question", "Courseware"]
     # ]
     # auxiliaryEdge = [
-    #     {"Question": "Courseware"},
-    #     {"Question": "Courseware"},
+    #     # {"Question": "Courseware"},
+    #     # {"Question": "Courseware"},
     # ]
     # walkLengthRatio = [1.0, 1.0]
     # restartRatio = [0.0, 0.0]

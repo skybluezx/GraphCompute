@@ -56,7 +56,19 @@ private:
     // 每一路召回对应的总步数切分策略
     static std::vector<bool> questionRecallIsSplitStepCountList;
 
-    static void visitedCountListToFile(const Graph &graph, const int &threadNumList, const std::string &nodeType, const std::string filePath, const unsigned int &visitedCountTopN);
+    /**
+     * 多线程获取图计算结果的线程体
+     * @param graph             图的引用
+     * @param threadNum         当前线程编号（用于到图结构的获取指定线程的计算结果）
+     * @param nodeType          获取计算结果的节点类型
+     * @param filePath          结果的存储路径（生成线程体时生成，所以不能使用引用）
+     * @param visitedCountTopN  获取的TopN
+     */
+    static void visitedCountListToFile(const Graph &graph,
+                                       const int &threadNum,
+                                       const std::string &nodeType,
+                                       const std::string filePath,
+                                       const unsigned int &visitedCountTopN);
 };
 
 

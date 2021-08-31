@@ -348,7 +348,7 @@ private:
      * Todo
      * unsigned是否合适？
      */
-    std::map<std::string, unsigned> nodeTypeCountList;
+    std::map<std::string, unsigned int> nodeTypeCountList;
 
     /**
      * 图中点的读书字典
@@ -392,16 +392,6 @@ private:
      * 按访问顺序存储的节点TypeID列表
      */
     std::vector<std::vector<std::string>> walkingSequence;
-
-    /**
-     * 随机数生成引擎
-     */
-    std::default_random_engine randomEngine;
-
-    /**
-     * 随机数分布器
-     */
-    std::uniform_real_distribution<double> randomDistribution;
 
     /**
      * 私有成员方法
