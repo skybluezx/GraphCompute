@@ -221,22 +221,6 @@ public:
     void reset(const bool &onlyVisitedCount = true);
 
     /**
-     * 获取访问列表中全部节点按照访问次数从大到小顺序的列表
-     * 返回节点ID和访问次数所组成Pair的列表
-     * @return
-     */
-//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const;
-
-    /**
-     * 获取访问列表中指定类型全部节点按照访问次数从大到小顺序的列表
-     * 返回节点ID和访问次数所组成Pair的列表
-     * @return
-     */
-//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const;
-
-//    std::vector<std::pair<std::string, int>> getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const;
-
-    /**
      * 获取线程编号对应的指定类型的节点访问次数列表
      * @param nodeType  节点类型
      * @param threadNum 线程编号(默认为第一个线程，单线程游走时即默认使用第一个线程)

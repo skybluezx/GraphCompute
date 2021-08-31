@@ -141,23 +141,21 @@ bool Node::getNextLinkedNode(const EdgeChooseStrategy &strategy, Node *&nextNode
     return false;
 }
 
-bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type) {
-//    nextNode = nullptr;
-//    if (this->linkedNodeMapList.contains(type)) {
-//        return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type).first, nextNode, this->randomEngine,
-//                                             this->linkedNodeMapList.at(type).second);
-//    } else {
-//        return false;
-//    }
-return false;
+bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::string &type, std::mt19937 &randomEngine) {
+    nextNode = nullptr;
+    if (this->linkedNodeMapList.contains(type)) {
+        std::uniform_int_distribution<unsigned> randomDistribution(0, this->linkedNodeMapList.at(type).size() - 1);
+        return Node::getNextRandomLinkedNode(this->linkedNodeMapList.at(type), nextNode, randomEngine, randomDistribution);
+    } else {
+        return false;
+    }
 }
 
-bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList) {
-//    nextNode = nullptr;
-//    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
-//    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
-//    return Node::getNextRandomLinkedNode(nodeList, nextNode, this->randomEngine, randomDistribution);
-return false;
+bool Node::getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList, std::mt19937 &randomEngine) {
+    nextNode = nullptr;
+    std::vector<Node*> nodeList = std::move(this->getLinkedNodeMapList(typeList));
+    std::uniform_int_distribution<unsigned> randomDistribution(0, nodeList.size() - 1);
+    return Node::getNextRandomLinkedNode(nodeList, nextNode, randomEngine, randomDistribution);
 }
 
 void Node::reset(const bool &onlyVisitedCount) {
@@ -234,7 +232,7 @@ void Node::flushLinkedNodes() {
 bool Node::getNextLinkedNode(const std::vector<Node *> &nodeList,
                              Node *&nextNode,
                              const EdgeChooseStrategy &strategy,
-                             std::default_random_engine &randomEngine,
+                             std::mt19937 &randomEngine,
                              std::uniform_int_distribution<unsigned> &randomDistribution) {
     // 根据不同边选择策略执行不同方法
     if (strategy == FIRST) {
@@ -299,7 +297,7 @@ bool Node::getNextLastNoVisitedLinkedNode(const std::vector<Node *> &nodeList, N
 
 bool Node::getNextRandomLinkedNode(const std::vector<Node *> &nodeList,
                                    Node* &nextNode,
-                                   std::default_random_engine &randomEngine,
+                                   std::mt19937 &randomEngine,
                                    std::uniform_int_distribution<unsigned> &randomDistribution) {
     // 判断当前节点链表是否为空
     if (!nodeList.empty()) {
@@ -312,7 +310,7 @@ bool Node::getNextRandomLinkedNode(const std::vector<Node *> &nodeList,
 
 bool Node::getNextRandomNoVisitedLinkedNode(const std::vector<Node *> &nodeList,
                                             Node *&nextNode,
-                                            std::default_random_engine &randomEngine) {
+                                            std::mt19937 &randomEngine) {
     // 初始化当前点全部未访问节点列表
     std::vector<Node *> noVisitedLinkedNodeList;
     // 遍历当前点的邻接表

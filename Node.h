@@ -138,14 +138,14 @@ public:
      * @param type      邻接点类型
      * @return
      */
-    bool getNextRandomLinkedNode(Node *&nextNode, const std::string &type);
+    bool getNextRandomLinkedNode(Node *&nextNode, const std::string &type, std::mt19937 &randomEngine);
     /**
      * 随机获取多个类型的邻接点
      * @param nextNode  邻接点指针
      * @param typeList  邻接点类型数组
      * @return
      */
-    bool getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList);
+    bool getNextRandomLinkedNode(Node *&nextNode, const std::vector<std::string> &typeList, std::mt19937 &randomEngine);
 
     /**
      * 重置图遍历/游走的状态信息
@@ -213,7 +213,7 @@ private:
     static bool getNextLinkedNode(const std::vector<Node *> &nodeList,
                                   Node *&nextNode,
                                   const EdgeChooseStrategy &strategy,
-                                  std::default_random_engine &randomEngine,
+                                  std::mt19937 &randomEngine,
                                   std::uniform_int_distribution<unsigned> &randomDistribution);
     /**
      * 具体边选择策略的选边方法
@@ -227,10 +227,11 @@ private:
     static bool getNextLastNoVisitedLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode);
     static bool getNextRandomLinkedNode(const std::vector<Node *> &nodeList,
                                         Node* &nextNode,
-                                        std::default_random_engine &randomEngine,
+                                        std::mt19937 &randomEngine,
                                         std::uniform_int_distribution<unsigned> &randomDistribution);
-    static bool getNextRandomNoVisitedLinkedNode(const std::vector<Node *> &nodeList, Node* &nextNode,
-                                                 std::default_random_engine &randomEngine);
+    static bool getNextRandomNoVisitedLinkedNode(const std::vector<Node *> &nodeList,
+                                                 Node* &nextNode,
+                                                 std::mt19937 &randomEngine);
 };
 
 

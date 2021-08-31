@@ -26,9 +26,14 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
         LOG(ERROR) << "图定义目录不存在！";
     } else {
         // 路径存在
+
+        // 判断是否设置了初始化节点个数
         if (initNodeCount > 0) {
-	    this->nodeList.reserve(initNodeCount);
+            // 若设置了则预留节点列表中的空间
+            // 用于性能优化
+	        this->nodeList.reserve(initNodeCount);
         }
+
         // 初始化当前已读取边数
         int currentEdgeCount = 0;
         // 遍历图定义文件所在目录的全部图定义文件
@@ -55,90 +60,111 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                     // 打开失败则输出错误日志
                     LOG(ERROR) << "文件读取失败！";
                 } else {
+                    // 建立和文件大小相同的内存空间
                     std::vector<char> buf(graphDefineFile.seekg(0, std::ios::end).tellg());
+                    // 将文件中的数据全部读入内从
                     graphDefineFile.seekg(0, std::ios::beg).read(&buf[0], static_cast<std::streamsize>(buf.size()));
-                    // 关闭文件
+                    // 关闭文件释放空间
                     graphDefineFile.close();
 
                     // 遍历图定义文件的全部行
                     // 每一行为一个边描述
 
+                    // 初始化两个边节点的类型和ID
                     std::string beginNodeType, beginNodeID, endNodeType, endNodeID;
+                    // 初始化对应标志为false
                     bool beginNodeTypeFlag = false, beginNodeIDFlag = false, endNodeTypeFlag = false, endNodeIDFlag = false;
+                    // 初始化左游标为开始位置
                     auto beginIter = buf.begin();
+                    // 遍历全部字节
+                    // Todo
+                    // 当前的文件读入过程不容错！！
                     for (auto iter = buf.begin(); iter != buf.end(); ++iter) {
+                        // 当前字段为冒号时
                         if (*iter == ':') {
+                            // 判断begin点是否已完成读入
                             if (!beginNodeTypeFlag) {
+                                // begin点未读入则当前片段为begin点的类型
                                 beginNodeType.insert(beginNodeType.begin(), beginIter, iter);
                                 beginNodeTypeFlag = true;
                             } else {
+                                // begin点已读入则当前片段为end点的类型
                                 endNodeType.insert(endNodeType.begin(), beginIter, iter);
                                 endNodeTypeFlag = true;
                             }
-
+                            // 左游标前进
                             beginIter = iter + 1;
                         }
 
+                        // 当前字段为制表符时
                         if (*iter == '\t') {
+                            // 读入begin点的ID
                             beginNodeID.insert(beginNodeID.begin(), beginIter, iter);
                             beginNodeIDFlag = true;
 
                             beginIter = iter + 1;
                         }
 
+                        // 当前字段为换行时
                         if (*iter == '\n') {
+                            // 读入end点的ID
                             endNodeID.insert(endNodeID.begin(), beginIter, iter);
                             endNodeIDFlag = true;
 
                             beginIter = iter + 1;
-                        }
 
-                        if (beginNodeTypeFlag && beginNodeIDFlag && endNodeTypeFlag && endNodeIDFlag) {
-                            // 累加当前已读取总边数
-                            currentEdgeCount++;
-                            
-			    // 初始化起点
-                            Node *beginNode = nullptr;
-                            // 判断起点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
-			                        // 不存在则创建起点对应的点对象
-                                beginNode = new Node(beginNodeID, beginNodeType);
-			                        // 将创建的点增加至全局点字典
-                                this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
+                            // 判断是否完成一行的读取
+                            if (beginNodeTypeFlag && beginNodeIDFlag && endNodeTypeFlag && endNodeIDFlag) {
+                                // 累加当前已读取总边数
+                                currentEdgeCount++;
 
-                                // 累加当前点对应类型的总节点数
-                                if (!this->nodeTypeCountList.contains(beginNode->getType())) {
-                                    this->nodeTypeCountList[beginNode->getType()] = 0;
+                                // 初始化起点
+                                Node *beginNode = nullptr;
+                                // 判断起点ID是否在全局点字典中已存在
+                                if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
+                                    // 不存在则创建起点对应的点对象
+                                    beginNode = new Node(beginNodeID, beginNodeType);
+                                    // 将创建的点增加至全局点字典
+                                    this->nodeList.insert(std::make_pair(beginNode->getTypeID(), beginNode));
+
+                                    // 累加当前点对应类型的总节点数
+                                    if (!this->nodeTypeCountList.contains(beginNode->getType())) {
+                                        this->nodeTypeCountList[beginNode->getType()] = 0;
+                                    }
+                                    this->nodeTypeCountList[beginNode->getType()] += 1;
+                                } else {
+                                    // 存在则获取已存在的点
+                                    beginNode = this->nodeList[beginNodeType + ":" + beginNodeID];
                                 }
-                                this->nodeTypeCountList[beginNode->getType()] += 1;
-                            } else {
-                                // 存在则获取已存在的点
-                                beginNode = this->nodeList[beginNodeType + ":" + beginNodeID];
+
+                                // 初始化终点
+                                Node *endNode = nullptr;
+                                // 判断终点ID是否在全局点字典中已存在
+                                if (!this->nodeList.contains(endNodeType + ":" + endNodeID)) {
+                                    // 不存在则创建终点对应的点对象
+                                    endNode = new Node(endNodeID, endNodeType);
+                                    // 将创建的点增加至全局点字典
+                                    this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
+
+                                    // 累加当前点对应类型的总节点数
+                                    if (!this->nodeTypeCountList.contains(endNode->getType())) {
+                                        this->nodeTypeCountList[endNode->getType()] = 0;
+                                    }
+                                    this->nodeTypeCountList[endNode->getType()] += 1;
+                                } else {
+                                    // 存在则获取已存在的点
+                                    endNode = this->nodeList[endNodeType + ":" + endNodeID];
+                                }
+
+                                // 将当前边增加至起点和终点的链表中
+                                beginNode->addEdge(endNode);
+                                endNode->addEdge(beginNode);
+#ifdef INFO_LOG_OUTPUT
+                                LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
+#endif
                             }
 
-                            // 初始化终点
-                            Node *endNode = nullptr;
-                            // 判断终点ID是否在全局点字典中已存在
-                            if (!this->nodeList.contains(endNodeType + ":" + endNodeID)) {
-                                // 不存在则创建终点对应的点对象
-                                endNode = new Node(endNodeID, endNodeType);
-                                // 将创建的点增加至全局点字典
-                                this->nodeList.insert(std::make_pair(endNode->getTypeID(), endNode));
-
-                                // 累加当前点对应类型的总节点数
-                                if (!this->nodeTypeCountList.contains(endNode->getType())) {
-                                    this->nodeTypeCountList[endNode->getType()] = 0;
-                                }
-                                this->nodeTypeCountList[endNode->getType()] += 1;
-                            } else {
-                                // 存在则获取已存在的点
-                                endNode = this->nodeList[endNodeType + ":" + endNodeID];
-                            }
-
-                            // 将当前边增加至起点和终点的链表中
-                            beginNode->addEdge(endNode);
-                            endNode->addEdge(beginNode);
-
+                            // 还原相关flag和中间变量
                             beginNodeTypeFlag = false;
                             beginNodeIDFlag = false;
                             endNodeTypeFlag = false;
@@ -148,11 +174,8 @@ Graph::Graph(const std::string &graphDefineFileDirectoryPath, const std::string 
                             beginNodeID.clear();
                             endNodeType.clear();
                             endNodeID.clear();
-
-#ifdef INFO_LOG_OUTPUT
-                            LOG(INFO) << "添加边成功！当前边数：" << currentEdgeCount;
-#endif
                         }
+
                         // 判断是否已读取配置文件中配置的最大边数
                         if (readEdgeCount >= 0 && currentEdgeCount >= readEdgeCount) {
                             // 若已读取最大边数退出不在读取
@@ -286,6 +309,11 @@ void Graph::walk(const std::string &beginNodeType,
         return;
     }
 
+    if (!this->nodeList.at(beginNodeType + ":" + beginNodeID)->canVisit()) {
+        LOG(ERROR) << "开始点被排除！" << beginNodeType + ":" + beginNodeID;
+        return;
+    }
+
     // 获取开始点ID对应的点指针
     Node *beginNode = this->nodeList.at(beginNodeType + ":" + beginNodeID);
 
@@ -353,7 +381,7 @@ void Graph::walk(const std::string &beginNodeType,
             // (2) 辅助边对应的辅助点是否还可以拥有辅助边？（目前辅助边不能再拥有辅助边）
             if (auxiliaryEdge.contains(currentNode->getType())) {
                 Node *auxiliaryNode;
-                currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()));
+                currentNode->getNextRandomLinkedNode(auxiliaryNode, auxiliaryEdge.at(currentNode->getType()), this->randomEngineList[0]);
                 if (auxiliaryNode != nullptr) {
                     // 存在辅助点则访问
                     auxiliaryNode->visit();
@@ -363,7 +391,7 @@ void Graph::walk(const std::string &beginNodeType,
 #endif
                     // 从辅助点返回
                     // 因为是从必选点游走至该辅助点的，该辅助点至少存在一个返回必选点的边，所以这里获取的节点不可能是空指针
-                    auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType());
+                    auxiliaryNode->getNextRandomLinkedNode(currentNode, currentNode->getType(), this->randomEngineList[0]);
                     if (currentNode != nullptr) {
                         currentNode->visit();
                         this->insertResultList(currentNode);
@@ -402,7 +430,7 @@ void Graph::walk(const std::string &beginNodeType,
             }
 
             // 获取当前点的下一个点
-            currentNode->getNextRandomLinkedNode(currentNode, stepDefine);
+            currentNode->getNextRandomLinkedNode(currentNode, stepDefine, this->randomEngineList[0]);
             // 判断当前点是否存在符合步长定义的下一个节点             
             if (currentNode == nullptr) {
                 // 不存则则结束本次游走
@@ -785,60 +813,6 @@ void Graph::reset(const bool &onlyVisitedCount) {
         iter->second->reset(onlyVisitedCount);
     }
 }
-
-//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence) const {
-//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-//    std::map<std::string, int> nodeIDList;
-//    for (auto i = 0; i < walkingSequence.size(); ++i) {
-//        if (this->nodeList.contains(walkingSequence[i])) {
-//            if (!nodeIDList.contains(walkingSequence[i])) {
-//                nodeIDList[walkingSequence[i]] = 1;
-//                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
-//                        walkingSequence[i])->getVisitedCount()));
-//            }
-//        }
-//    }
-//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
-//
-//    return nodeVisitedCountList;
-//}
-
-//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::string &nodeType) const {
-//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-//    std::map<std::string, int> nodeIDList;
-//    for (auto i = 0; i < walkingSequence.size(); ++i) {
-//        if (this->nodeList.contains(walkingSequence[i])) {
-//            if (!nodeIDList.contains(walkingSequence[i])) {
-//                nodeIDList[walkingSequence[i]] = 1;
-//                nodeVisitedCountList.emplace_back(std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(), this->nodeList.at(
-//                        walkingSequence[i])->getVisitedCount()));
-//            }
-//        }
-//    }
-//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
-//
-//    return nodeVisitedCountList;
-//}
-
-//std::vector<std::pair<std::string, int>> Graph::getSortedNodeTypeIDListByVisitedCount(const std::vector<std::string> &walkingSequence, const std::string &nodeType) const {
-//    std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-//    std::map<std::string, int> nodeTypeIDList;
-//    for (auto i = 0; i < walkingSequence.size(); ++i) {
-//        if (this->nodeList.contains(walkingSequence[i])) {
-//            if (this->nodeList.at(walkingSequence[i])->getType() == nodeType) {
-//                if (!nodeTypeIDList.contains(walkingSequence[i])) {
-//                    nodeTypeIDList[walkingSequence[i]] = 1;
-//                    nodeVisitedCountList.emplace_back(
-//                            std::pair<std::string, int>(this->nodeList.at(walkingSequence[i])->getTypeID(),
-//                                                        this->nodeList.at(walkingSequence[i])->getVisitedCount()));
-//                }
-//            }
-//        }
-//    }
-//    std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
-//
-//    return nodeVisitedCountList;
-//}
 
 std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByVisitedCount(const std::string &nodeType, const unsigned int &threadNum) const {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;
