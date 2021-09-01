@@ -496,6 +496,13 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                             threadList[j].join();
                         }
                     }
+                    threadList.clear();
+
+                    // 清空本次多线程运行状态
+                    // 重新开始遍历下一批线程
+                    threadNum = 0;
+                    threadNumList.clear();
+                    currentBeginNodeIDListGroup = std::vector<std::map<std::string, double>>(beginNodeTypeList.size());
                 }
             }
         }
