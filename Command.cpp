@@ -509,43 +509,68 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     /**
      * 多路召回
      */
-    // 将知识点召回的知识点及其权重放入开始点列表
-    std::vector<std::map<std::string, double>> beginNodeIDList;
-    beginNodeIDList.emplace_back(request.current_knowledge_points);
+    // 初始化知识点召回和题目召回Map
+    beginNodeIDList[0].clear();
+    beginNodeIDList[1].clear();
 
-    // 按题目召回
-    std::map<std::string, double> questionBeginNodeIDList;
-    for (auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter) {
-        questionBeginNodeIDList[iter->first] = iter->second;
-    }
-    beginNodeIDList.emplace_back(questionBeginNodeIDList);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    // 多重游走
-    // Todo
-    graph.multiWalk(Command::questionRecallBeginNodeTypeList,
-                    beginNodeIDList,
-                    Command::questionRecallStepDefineList,
-                    Command::questionRecallAuxiliaryEdgeList,
-                    Command::questionRecallWalkLengthRatioList,
-                    Command::questionRecallRestartRatioList,
-                    Command::questionRecallTotalStepCountList,
-                    Command::questionRecallIsSplitStepCountList,
-                    false);
+    unsigned int threadNum = 0;
+    std::vector<unsigned int> threadNumList;
+    auto kpIter = request.current_knowledge_points.begin();
+    auto quIter = request.questions_assement.begin();
+
+    // 遍历全部待召回知识点和题目
+    while (kpIter != request.current_knowledge_points.end() && quIter != request.questions_assement.end()) {
+        if (threadNum < graph.getMaxWalkBeginNodeCount() && kpIter != request.current_knowledge_points.end()) {
+            beginNodeIDList[0][kpIter->first] = kpIter->second;
+            kpIter++;
+            threadNumList.emplace_back(threadNum);
+            threadNum++;
+        }
+
+        if (threadNum < graph.getMaxWalkBeginNodeCount() && quIter != request.questions_assement.end()) {
+            beginNodeIDList[1][quIter->first] = quIter->second;
+            quIter++;
+            threadNumList.emplace_back(threadNum);
+            threadNum++;
+        }
+
+        if (threadNum == graph.getMaxWalkBeginNodeCount() || (kpIter == request.current_knowledge_points.end() && quIter != request.questions_assement.end())) {
+            if (Command::questionRecallIsSplitStepCount) {
+                Command::questionRecallTotalStepCountList[0] = threadNum / graph.getMaxWalkBeginNodeCount() * Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[1] = threadNum / graph.getMaxWalkBeginNodeCount() * Command::questionRecallTotalStepCount;
+            } else {
+                Command::questionRecallTotalStepCountList[0] = Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[1] = Command::questionRecallTotalStepCount;
+            }
+
+            // 多重游走
+            // Todo
+            graph.multiWalk(Command::questionRecallBeginNodeTypeList,
+                            beginNodeIDList,
+                            Command::questionRecallStepDefineList,
+                            Command::questionRecallAuxiliaryEdgeList,
+                            Command::questionRecallWalkLengthRatioList,
+                            Command::questionRecallRestartRatioList,
+                            Command::questionRecallTotalStepCountList,
+                            Command::questionRecallIsSplitStepCountList,
+                            false);
+            graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
+
+            threadNum = 0;
+            threadNumList.clear();
+        }
+    }
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
 
     LOG(INFO) << "[INFO] 游走时长：" << programSpan.count() << "秒" << std::endl;
 
     /**
-     * 多路合并策略
+     * 获取游走结果
      */
-    // Todo
-    std::vector<unsigned int> threadNumList;
-    for (auto i = 0; i < beginNodeIDList.size(); ++i) {
-        threadNumList.emplace_back(i);
-    }
     // 输出指定类型节点按访问次数排序节点ID、类型以及具体访问次数
-    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeIDListByVisitedCount("Question", threadNumList);
+    std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question", graph.getMaxWalkBeginNodeCount());
 
     /**
      * 后过滤策略
@@ -583,17 +608,20 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     return result;
 }
 
-void Command::questionRecallInitialize(const std::string &configFilePath) {
+bool Command::questionRecallInitialize(const std::string &configFilePath) {
+    // 判断文件是否存在
     if (!boost::filesystem::exists(configFilePath)) {
         std::cerr << "[ERROR] JSON文件不存在！" << std::endl;
+        return false;
     }
+    // 解析配置文件
     std::ifstream jsonFile(configFilePath);
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();
     std::string jsonString(buffer.str());
-
     auto jsonObj = boost::json::parse(jsonString);
 
+    // 读取知识点召回和题目召回的步长定义
     auto stepDefineObj = jsonObj.as_object().at("stepDefine").as_object();
     Command::questionRecallStepDefineList.emplace_back(std::vector<std::string>());
     Command::questionRecallStepDefineList.emplace_back(std::vector<std::string>());
@@ -603,7 +631,7 @@ void Command::questionRecallInitialize(const std::string &configFilePath) {
     for (auto iter = stepDefineObj["Question"].as_array().begin(); iter != stepDefineObj["Question"].as_array().end(); ++iter) {
         Command::questionRecallStepDefineList[1].emplace_back(iter->as_string().c_str());
     }
-
+    // 读取知识点召回和题目召回的辅助边
     auto auxiliaryEdgeObj = jsonObj.as_object().at("auxiliaryEdge").as_object();
     Command::questionRecallAuxiliaryEdgeList.emplace_back(std::map<std::string, std::string>());
     Command::questionRecallAuxiliaryEdgeList.emplace_back(std::map<std::string, std::string>());
@@ -613,26 +641,27 @@ void Command::questionRecallInitialize(const std::string &configFilePath) {
     for (auto iter = auxiliaryEdgeObj["Question"].as_object().begin(); iter != auxiliaryEdgeObj["Question"].as_object().end(); ++iter) {
         Command::questionRecallAuxiliaryEdgeList[1][iter->key_c_str()] = iter->value().as_string().c_str();
     }
-
+    // 读取知识点召回和题目的步长参数
     auto walkLengthRatioObj = jsonObj.as_object().at("walkLengthRatio").as_object();
     Command::questionRecallWalkLengthRatioList.emplace_back(walkLengthRatioObj.at("KnowledgePoint").as_double());
     Command::questionRecallWalkLengthRatioList.emplace_back(walkLengthRatioObj.at("Question").as_double());
-
+    // 读取知识点召回和题目召回的重启概率
     auto restartRatioObj = jsonObj.as_object().at("restartRatio").as_object();
     Command::questionRecallRestartRatioList.emplace_back(restartRatioObj.at("KnowledgePoint").as_double());
     Command::questionRecallRestartRatioList.emplace_back(restartRatioObj.at("Question").as_double());
+    // 读取总游走步数
+    Command::questionRecallTotalStepCount = jsonObj.as_object().at("totalStepCount").as_int64();
+    // 读取是否切分总游走步数
+    Command::questionRecallIsSplitStepCount = jsonObj.as_object().at("isSplitStepCount").as_bool();
 
-    auto totalStepCountObj = jsonObj.as_object().at("totalStepCount").as_object();
-    Command::questionRecallTotalStepCountList.emplace_back(totalStepCountObj.at("KnowledgePoint").as_int64());
-    Command::questionRecallTotalStepCountList.emplace_back(totalStepCountObj.at("Question").as_int64());
+    Command::beginNodeIDList.emplace_back(std::map<std::string, double>());
+    Command::beginNodeIDList.emplace_back(std::map<std::string, double>());
+    Command::questionRecallTotalStepCountList.emplace_back(0);
+    Command::questionRecallTotalStepCountList.emplace_back(0);
+    Command::questionRecallIsSplitStepCountList.emplace_back(false);
+    Command::questionRecallIsSplitStepCountList.emplace_back(false);
 
-    auto targetNodeTypeObj = jsonObj.as_object().at("targetNodeType").as_object();
-    Command::questionRecallTargetNodeTypeList.emplace_back(targetNodeTypeObj.at("KnowledgePoint").as_string().c_str());
-    Command::questionRecallTargetNodeTypeList.emplace_back(targetNodeTypeObj.at("Question").as_string().c_str());
-
-    auto isSplitStepCountObj = jsonObj.as_object().at("isSplitStepCount").as_object();
-    Command::questionRecallIsSplitStepCountList.emplace_back(isSplitStepCountObj.at("KnowledgePoint").as_bool());
-    Command::questionRecallIsSplitStepCountList.emplace_back(isSplitStepCountObj.at("Question").as_bool());
+    return true;
 }
 
 /**
@@ -648,12 +677,14 @@ std::vector<std::map<std::string, std::string>> Command::questionRecallAuxiliary
 std::vector<float> Command::questionRecallWalkLengthRatioList;
 // 每一路召回对应的重启概率
 std::vector<float> Command::questionRecallRestartRatioList;
-// 每一路召回对应的总游走步数
-std::vector<unsigned int> Command::questionRecallTotalStepCountList;
-// 每一路召回对应的召回目标
-std::vector<std::string> Command::questionRecallTargetNodeTypeList;
-// 每一路召回对应的总步数切分策略
-std::vector<bool> Command::questionRecallIsSplitStepCountList;
+// 总游走步数
+unsigned int Command::questionRecallTotalStepCount;
+// 总步数切分策略
+bool Command::questionRecallIsSplitStepCount;
+
+std::vector<std::map<std::string, double>> beginNodeIDList;
+std::vector<unsigned int> questionRecallTotalStepCountList;
+std::vector<bool> questionRecallIsSplitStepCountList;
 
 void Command::visitedCountListToFile(const Graph &graph,
                                      const int &threadNum,

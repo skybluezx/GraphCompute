@@ -33,7 +33,7 @@ public:
      * 题目召回配置文件读取方法
      * @param configFilePath
      */
-    static void questionRecallInitialize(const std::string &configFilePath);
+    static bool questionRecallInitialize(const std::string &configFilePath);
 
 private:
     /**
@@ -49,11 +49,16 @@ private:
     static std::vector<float> questionRecallWalkLengthRatioList;
     // 每一路召回对应的重启概率
     static std::vector<float> questionRecallRestartRatioList;
-    // 每一路召回对应的总游走步数
+    // 总游走步数
+    static unsigned int questionRecallTotalStepCount;
+    // 总步数切分策略
+    static bool questionRecallIsSplitStepCount;
+
+    // 多路开始点列表
+    static std::vector<std::map<std::string, double>> beginNodeIDList;
+    // 多路总步数列表
     static std::vector<unsigned int> questionRecallTotalStepCountList;
-    // 每一路召回对应的召回目标
-    static std::vector<std::string> questionRecallTargetNodeTypeList;
-    // 每一路召回对应的总步数切分策略
+    // 多路是否切分步数列表
     static std::vector<bool> questionRecallIsSplitStepCountList;
 
     /**
