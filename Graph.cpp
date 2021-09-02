@@ -701,6 +701,9 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<unsigned int> &totalStepCountList,
                       const std::vector<bool> &isSplitStepCountList,
                       const bool &keepVisitedCount) {
+    // 清空用于合并多个线程图操作访问次数的预留map
+    this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].clear();
+
     // 初始化线程起始编号为0
     unsigned int threadNum = 0;
     // 线程池
@@ -832,8 +835,7 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     } else {
-        auto &typeNodeList = this->typeNodeList.at(nodeType);
-        nodeVisitedCountList.reserve(typeNodeList.size());
+        nodeVisitedCountList.reserve(this->typeNodeList.at(nodeType).size());
 
         for (auto iter = this->visitedNodeTypeIDCountList[threadNum].begin(); iter != this->visitedNodeTypeIDCountList[threadNum].end(); ++iter) {
             if (iter->first == nodeType) {
@@ -851,11 +853,10 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
 #endif
-
     return nodeVisitedCountList;
 }
 
-std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const {
+std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) {
     std::vector<std::pair<std::string, int>> nodeVisitedCountList;    
 
     const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
@@ -883,18 +884,19 @@ std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNode
     std::vector<std::vector<std::pair<std::string, int>>> nodeVisitedCountLists;
     nodeVisitedCountLists.reserve(threadNumList.size());
 
+    // 遍历全部指定线程编号
     for (auto i = 0; i < threadNumList.size(); ++i) {
-        auto &typeNodeList = this->typeNodeList.at(nodeType);
-
+        // 初始化目标类型节点的访问次数列表
         std::vector<std::pair<std::string, int>> nodeVisitedCountList;
-        nodeVisitedCountList.reserve(typeNodeList.size());
-
+        nodeVisitedCountList.reserve(this->typeNodeList.at(nodeType).size());
+        // 遍历当前线程的全部访问节点
         for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
+            // 判断当前节点是否为目标节点类型
             if (iter->first == nodeType) {
                 nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
         }
-
+        // 排序
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
         nodeVisitedCountLists.emplace_back(nodeVisitedCountList);
     }
@@ -1231,7 +1233,7 @@ void Graph::insertResultList(Node* &node, const unsigned int &threadNum) {
 
 void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList, const unsigned int &targetThreadNum) {
     // 遍历多路图操作对应的线程编号
-    for (auto i = 0; i < this->threadNumList.size(); ++i) {
+    for (auto i = 0; i < threadNumList.size(); ++i) {
         // 遍历当前线程图操作的节点访问次数列表
         for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
             // 将访问次数累加至预留列表

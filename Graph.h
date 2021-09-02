@@ -234,7 +234,7 @@ public:
      * @param threadNumList 线程编号数组
      * @return
      */
-    std::vector<std::pair<std::string, int>> getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList) const;
+    std::vector<std::pair<std::string, int>> getSortedResultNodeIDListByVisitedCount(const std::string &nodeType, const std::vector<unsigned int> &threadNumList);
 
     /**
      * 获取多个线程编号对应的指定类型的多个节点访问次数列表

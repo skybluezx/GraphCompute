@@ -689,9 +689,9 @@ unsigned int Command::questionRecallTotalStepCount;
 // 总步数切分策略
 bool Command::questionRecallIsSplitStepCount;
 
-std::vector<std::map<std::string, double>> beginNodeIDList;
-std::vector<unsigned int> questionRecallTotalStepCountList;
-std::vector<bool> questionRecallIsSplitStepCountList;
+std::vector<std::map<std::string, double>> Command::beginNodeIDList;
+std::vector<unsigned int> Command::questionRecallTotalStepCountList;
+std::vector<bool> Command::questionRecallIsSplitStepCountList;
 
 void Command::visitedCountListToFile(const Graph &graph,
                                      const int &threadNum,

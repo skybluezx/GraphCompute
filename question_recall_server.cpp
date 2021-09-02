@@ -47,6 +47,8 @@ int main(int argc, char* argv[]) {
     Util::getConfig("Input", "read_edge_count", readEdgeCount);
     std::string resultType;
     Util::getConfig("Input", "result_type", resultType);
+    int initNodeCount;
+    Util::getConfig("Input", "init_node_count", initNodeCount);
     int maxWalkBeginNodeCount;
     Util::getConfig("Walk", "max_walk_begin_node_count", maxWalkBeginNodeCount);
 
@@ -59,12 +61,13 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "图定义路径：" << graphDefineDirectory;
     LOG(INFO) << "读取边数：" << readEdgeCount;
     LOG(INFO) << "图结果类型：" << resultType;
+    LOG(INFO) << "初始化节点个数：" << initNodeCount;
     LOG(INFO) << "最大支持开始点个数：" << maxWalkBeginNodeCount;
     LOG(INFO) << "题目召回配置文件：" << questionRecallConfigFile;
     google::FlushLogFiles(google::INFO);
 
     // 建立图
-    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount, maxWalkBeginNodeCount);
+    Graph graph = Graph(graphDefineDirectory, resultType, readEdgeCount, initNodeCount, maxWalkBeginNodeCount);
     // 刷新图
     graph.flush();
     // 输出图的概要
