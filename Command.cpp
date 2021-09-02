@@ -318,6 +318,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
         google::FlushLogFiles(google::INFO);
 
         if (isMergeMultiBeginNodeResult) {
+            bool keepVisitedCount = false;
             unsigned int threadNum = 0;
             std::vector<unsigned int> threadNumList;
             std::vector<std::map<std::string, double>> currentBeginNodeIDListGroup(beginNodeTypeList.size());
@@ -339,9 +340,11 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         walkLengthRatioList,
                                         restartRatioList,
                                         totalStepCountList,
-                                        isSplitStepCountList);
+                                        isSplitStepCountList,
+                                        keepVisitedCount);
                         graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
+                        keepVisitedCount = true;
                         threadNum = 0;
                         threadNumList.clear();
                         currentBeginNodeIDListGroup = std::vector<std::map<std::string, double>>(beginNodeTypeList.size());
@@ -361,7 +364,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                 restartRatioList,
                                 totalStepCountList,
                                 isSplitStepCountList,
-                                false);
+                                keepVisitedCount);
                 graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -383,6 +386,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
             }
             resultFile.close();
         } else {
+            bool keepVisitedCount = false;
             // 初始化当前线程索引为0
             unsigned int threadNum = 0;
             // 初始化线程索引数组
@@ -426,7 +430,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                         restartRatioList,
                                         totalStepCountList,
                                         isSplitStepCountList,
-                                        false);
+                                        keepVisitedCount);
                         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
                         std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
                         LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";
@@ -452,6 +456,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                         }
                         threadList.clear();
 
+                        keepVisitedCount = true;
                         // 清空本次多线程运行状态
                         // 重新开始遍历下一批线程
                         threadNum = 0;
@@ -472,7 +477,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
                                     restartRatioList,
                                     totalStepCountList,
                                     isSplitStepCountList,
-                                    false);
+                                    keepVisitedCount);
                     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
                     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
                     LOG(INFO) << "[INFO] 单次游走时长：" << programSpan.count() << "秒";

@@ -701,8 +701,10 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                       const std::vector<unsigned int> &totalStepCountList,
                       const std::vector<bool> &isSplitStepCountList,
                       const bool &keepVisitedCount) {
-    // 清空用于合并多个线程图操作访问次数的预留map
-    this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].clear();
+    if (!keepVisitedCount) {
+        // 清空用于合并多个线程图操作访问次数的预留map
+        this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].clear();
+    }
 
     // 初始化线程起始编号为0
     unsigned int threadNum = 0;
@@ -838,7 +840,7 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
         nodeVisitedCountList.reserve(this->typeNodeList.at(nodeType).size());
 
         for (auto iter = this->visitedNodeTypeIDCountList[threadNum].begin(); iter != this->visitedNodeTypeIDCountList[threadNum].end(); ++iter) {
-            if (iter->first == nodeType) {
+            if (this->nodeList.at(iter->first)->getType() == nodeType) {
                 nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
         }
@@ -892,7 +894,7 @@ std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNode
         // 遍历当前线程的全部访问节点
         for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
             // 判断当前节点是否为目标节点类型
-            if (iter->first == nodeType) {
+            if (this->nodeList.at(iter->first)->getType() == nodeType) {
                 nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
         }
@@ -1237,7 +1239,7 @@ void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList, cons
         // 遍历当前线程图操作的节点访问次数列表
         for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
             // 将访问次数累加至预留列表
-            this->visitedNodeTypeIDCountList[targetThreadNum][iter->first] += this->visitedNodeTypeIDCountList[threadNumList[i]][iter->first];
+            this->visitedNodeTypeIDCountList[targetThreadNum][iter->first] += iter->second;
         }
     }
 }
