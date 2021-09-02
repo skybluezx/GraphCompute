@@ -615,7 +615,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             courseMaxHard = iter->second;
         }
     }
-
+    
     /**
      * 生成召回题目列表
      */
@@ -639,11 +639,15 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             }
 
             // 难度过滤
-            if (Command::questionRecallQuestionHardFilterMap[recallList[i].first] > courseMaxHard) {
+            if (courseMaxHard > 0 && Command::questionRecallQuestionHardFilterMap[recallList[i].first] > courseMaxHard) {
                 continue;
             }
 
             // 判断当前题目对应的知识点是否已召回足够多题目
+            if (graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint") == nullptr) {
+                continue;
+            }
+
             questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
             if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
                 // 不在则加入返回列表
@@ -722,9 +726,7 @@ bool Command::questionRecallInitialize(const std::string &configFilePath) {
     // 初始化题目开始点列表
     Command::questionRecallIsSplitStepCountList.emplace_back(false);
 
-    auto filterObj = jsonObj.as_object().at("filter");
-    Command::questionRecallFilterPath = filterObj.as_string().c_str();
-
+    Command::questionRecallFilterPath = jsonObj.as_object().at("filter_file_path").as_string().c_str();
     // 读取过滤初始化文件 （questionid;hard;isMultipleChoice;isDecidable）
     LOG(INFO) << "[读取过滤文件]";
     std::ifstream excludeFile(Command::questionRecallFilterPath, std::ios::binary);
@@ -753,27 +755,26 @@ bool Command::questionRecallInitialize(const std::string &configFilePath) {
                     questionIDFlag = true;
 
                     beginIter = iter + 1;
-                }
-
-                if (!hardFlag) {
-                    hard.insert(hard.begin(), beginIter, iter);
-                    hardFlag = true;
-
+                } else if (!hardFlag) {
+                    if (beginIter != iter) {
+                        hard.insert(hard.begin(), beginIter, iter);
+                        hardFlag = true;
+                    }
                     beginIter = iter + 1;
-                }
-
-                if (!isMultipleChoiceFlag) {
-                    isMultipleChoice.insert(isMultipleChoice.begin(), beginIter, iter);
-                    isMultipleChoiceFlag = true;
-
+                } else if (!isMultipleChoiceFlag) {
+                    if (beginIter != iter) {
+                        isMultipleChoice.insert(isMultipleChoice.begin(), beginIter, iter);
+                        isMultipleChoiceFlag = true;
+                    }
                     beginIter = iter + 1;
                 }
             }
 
             if (*iter == '\n') {
-                isDecidable.insert(isDecidable.begin(), beginIter, iter);
-                isDecidableFlag = true;
-
+                if (beginIter != iter) {
+                    isDecidable.insert(isDecidable.begin(), beginIter, iter);
+                    isDecidableFlag = true;
+                }
                 beginIter = iter + 1;
 
                 if (questionIDFlag && hardFlag && isMultipleChoiceFlag && isDecidableFlag) {
