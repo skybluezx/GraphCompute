@@ -56,13 +56,19 @@ public:
      */
     const std::unordered_map<std::string, std::vector<Node *>> &getLinkedNodeMapList() const;
 
-
     /**
      * 返回该点指定若干类型的合并邻接表
      * @param typeList
      * @return
      */
     const std::vector<Node*> getLinkedNodeMapList(const std::vector<std::string> &typeList) const;
+
+    /**
+     * 返回指定类型的第一个邻接点
+     * @param type
+     * @return
+     */
+    Node* getFirstLinkedNode(const std::string &type) const;
 
     /**
      * 增加边

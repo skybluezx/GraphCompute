@@ -526,6 +526,9 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     // 初始化是否保留访问次数为false（清除上一次请求的访问次数）
     bool keepVisitedCount = false;
 
+    // 每个知识点召回的题目个数列表清空
+    Command::questionRecallKnowledgePointQuestionCountList.clear();
+
     // 初始化知识点召回和题目召回Map
     beginNodeIDList[0].clear();
     beginNodeIDList[1].clear();
@@ -543,6 +546,8 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             kpIter++;
             threadNumList.emplace_back(threadNum);
             threadNum++;
+
+            Command::questionRecallKnowledgePointQuestionCountList[kpIter->first] = 0;
         }
 
         if (threadNum < graph.getMaxWalkBeginNodeCount() && quIter != request.questions_assement.end()) {
@@ -615,8 +620,12 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     for (auto i = 0; i < recallList.size(); ++i) {
         // 判断当前题目是否在过略列表里
         if (!filterQuestionList.contains(recallList[i].first)) {
-            // 不在则加入返回列表
-            result.payload.emplace_back(recallList[i].first);
+            // 判断当前题目对应的知识点是否已召回足够多题目
+            questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
+            if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
+                // 不在则加入返回列表
+                result.payload.emplace_back(recallList[i].first);
+            }
         }
         // 判断返回题目数是否已满足期待召回个数
         if (result.payload.size() == recallCount) break;
@@ -714,6 +723,8 @@ bool Command::questionRecallIsSplitStepCount;
 std::vector<std::map<std::string, double>> Command::beginNodeIDList;
 std::vector<unsigned int> Command::questionRecallTotalStepCountList;
 std::vector<bool> Command::questionRecallIsSplitStepCountList;
+
+std::map<std::string, unsigned int> Command::questionRecallKnowledgePointQuestionCountList;
 
 void Command::visitedCountListToFile(const Graph &graph,
                                      const int &threadNum,

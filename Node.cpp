@@ -49,6 +49,14 @@ const std::vector<Node*> Node::getLinkedNodeMapList(const std::vector<std::strin
     return nodeList;
 }
 
+Node* Node::getFirstLinkedNode(const std::string &type) const {
+    if (this->linkedNodeMapList.contains(type)) {
+        return this->linkedNodeMapList.at(type)[0];
+    } else {
+        return nullptr;
+    }
+}
+
 void Node::addEdge(Node *const &node) {
     // 当前框架不支持多重边
     // 判断待添加边对应的连接点是否已存在

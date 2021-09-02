@@ -61,6 +61,8 @@ private:
     // 多路是否切分步数列表
     static std::vector<bool> questionRecallIsSplitStepCountList;
 
+    static std::map<std::string, unsigned int> questionRecallKnowledgePointQuestionCountList;
+
     /**
      * 多线程获取图计算结果的线程体
      * @param graph             图的引用
