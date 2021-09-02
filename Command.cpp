@@ -602,12 +602,19 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     // 过滤题目ID列表
     std::map<std::string, int32_t> filterQuestionList;
 
-    // Todo 选择题过滤
-
     // 加入本节课的题目
     filterQuestionList.insert(request.questions_assement.begin(), request.questions_assement.end());
     // 加入前序课堂的题目
     filterQuestionList.insert(request.preceding_questions_assement.begin(), request.preceding_questions_assement.end());
+
+    // Todo
+    // 过滤本节课还是前序所有课
+    int32_t courseMaxHard = 0;
+    for(auto iter = request.questions_assement.begin(); iter != request.questions_assement.begin(); ++iter){
+        if (iter->second > courseMaxHard){
+            courseMaxHard = iter->second;
+        }
+    }
 
     /**
      * 生成召回题目列表
@@ -621,6 +628,21 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     for (auto i = 0; i < recallList.size(); ++i) {
         // 判断当前题目是否在过略列表里
         if (!filterQuestionList.contains(recallList[i].first)) {
+            // 选择题过滤
+            if (Command::questionRecallMultipleChoiceQuestionFilterMap[recallList[i].first] != 1) {
+                continue;
+            }
+
+            // 是否自动判卷过滤
+            if (Command::questionRecallIsDecidableFilterMap[recallList[i].first] == 0) {
+                continue;
+            }
+
+            // 难度过滤
+            if (Command::questionRecallQuestionHardFilterMap[recallList[i].first] > courseMaxHard) {
+                continue;
+            }
+
             // 判断当前题目对应的知识点是否已召回足够多题目
             questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
             if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
@@ -700,6 +722,83 @@ bool Command::questionRecallInitialize(const std::string &configFilePath) {
     // 初始化题目开始点列表
     Command::questionRecallIsSplitStepCountList.emplace_back(false);
 
+    auto filterObj = jsonObj.as_object().at("filter");
+    Command::questionRecallFilterPath = filterObj.as_string().c_str();
+
+    // 读取过滤初始化文件 （questionid;hard;isMultipleChoice;isDecidable）
+    LOG(INFO) << "[读取过滤文件]";
+    std::ifstream excludeFile(Command::questionRecallFilterPath, std::ios::binary);
+    if (!excludeFile.is_open()) {
+        // 打开失败则输出错误日志
+        LOG(ERROR) << "文件读取失败！";
+    } else {
+        // 建立和文件大小相同的内存空间
+        std::vector<char> buf(excludeFile.seekg(0, std::ios::end).tellg());
+        // 将文件中的数据全部读入内从
+        excludeFile.seekg(0, std::ios::beg).read(&buf[0], static_cast<std::streamsize>(buf.size()));
+        // 关闭文件释放空间
+        excludeFile.close();
+
+        // 初始化过滤文件每一行的四列
+        std::string questionID, hard, isMultipleChoice, isDecidable;
+        // 初始化对应标志为false
+        bool questionIDFlag = false, hardFlag = false, isMultipleChoiceFlag = false, isDecidableFlag = false;
+        // 初始化左游标为开始位置
+        auto beginIter = buf.begin();
+        for (auto iter = buf.begin(); iter != buf.end(); ++iter) {
+            // 当前字段为制表符时
+            if (*iter == '\t') {
+                if (!questionIDFlag) {
+                    questionID.insert(questionID.begin(), beginIter, iter);
+                    questionIDFlag = true;
+
+                    beginIter = iter + 1;
+                }
+
+                if (!hardFlag) {
+                    hard.insert(hard.begin(), beginIter, iter);
+                    hardFlag = true;
+
+                    beginIter = iter + 1;
+                }
+
+                if (!isMultipleChoiceFlag) {
+                    isMultipleChoice.insert(isMultipleChoice.begin(), beginIter, iter);
+                    isMultipleChoiceFlag = true;
+
+                    beginIter = iter + 1;
+                }
+            }
+
+            if (*iter == '\n') {
+                isDecidable.insert(isDecidable.begin(), beginIter, iter);
+                isDecidableFlag = true;
+
+                beginIter = iter + 1;
+
+                if (questionIDFlag && hardFlag && isMultipleChoiceFlag && isDecidableFlag) {
+                    // 难度map
+                    Command::questionRecallQuestionHardFilterMap.insert(std::pair<std::string, int> ("Question:" + questionID, std::stoi(hard)));
+                    // 单选map
+                    Command::questionRecallMultipleChoiceQuestionFilterMap.insert(std::pair<std::string, int> ("Question:" + questionID, std::stoi(isMultipleChoice)));
+                    // 自动判卷map
+                    Command::questionRecallIsDecidableFilterMap.insert(std::pair<std::string, int> ("Question:" + questionID, std::stoi(isDecidable)));
+                }
+
+                questionIDFlag = false;
+                hardFlag = false;
+                isMultipleChoiceFlag = false;
+                isDecidableFlag = false;
+
+                questionID.clear();
+                hard.clear();
+                isMultipleChoice.clear();
+                isDecidable.clear();
+            }
+        }
+    }
+    LOG(INFO) << "[读取过滤文件完成]";
+
     return true;
 }
 
@@ -726,6 +825,15 @@ std::vector<unsigned int> Command::questionRecallTotalStepCountList;
 std::vector<bool> Command::questionRecallIsSplitStepCountList;
 
 std::map<std::string, unsigned int> Command::questionRecallKnowledgePointQuestionCountList;
+
+// 过滤文件路径
+std::string Command::questionRecallFilterPath;
+// 难度过滤策略
+std::unordered_map<std::string, int> Command::questionRecallQuestionHardFilterMap;
+// 单选题过滤策略
+std::unordered_map<std::string, int> Command::questionRecallMultipleChoiceQuestionFilterMap;
+// 自动判卷过滤策略
+std::unordered_map<std::string, int> Command::questionRecallIsDecidableFilterMap;
 
 void Command::visitedCountListToFile(const Graph &graph,
                                      const int &threadNum,

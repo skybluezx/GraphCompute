@@ -63,6 +63,16 @@ private:
 
     static std::map<std::string, unsigned int> questionRecallKnowledgePointQuestionCountList;
 
+    // 过滤文件路径
+    static std::string questionRecallFilterPath;
+    // 难度过滤策略
+    static std::unordered_map<std::string, int> questionRecallQuestionHardFilterMap;
+    // 单选题过滤策略
+    static std::unordered_map<std::string, int> questionRecallMultipleChoiceQuestionFilterMap;
+    // 自动判卷过滤策略
+    static std::unordered_map<std::string, int> questionRecallIsDecidableFilterMap;
+
+
     /**
      * 多线程获取图计算结果的线程体
      * @param graph             图的引用
