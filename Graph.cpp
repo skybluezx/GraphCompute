@@ -465,9 +465,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
 
     // 清空访问次数字典
-    for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
-        iter->second = 0;
-    }
+    nodeVisitedCountList.clear();
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -530,7 +528,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
             LOG(INFO) << "[向前一步] 本次游走总步数/步长：" << i + 1 << "/" << walkingLength;
 #endif
             // 访问当前点
-            nodeVisitedCountList.at(currentNode->getTypeID())++;
+            nodeVisitedCountList[currentNode->getTypeID()]++;
             // 本次已游走步长加1
             length++;
 #ifdef INFO_LOG_OUTPUT
@@ -550,7 +548,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                         auxiliaryNode = nextNodeList[randomIntDistribution(randomEngine)];
 
                         // 存在辅助点则访问
-                        nodeVisitedCountList.at(auxiliaryNode->getTypeID())++;
+                        nodeVisitedCountList[auxiliaryNode->getTypeID()]++;
 #ifdef INFO_LOG_OUTPUT
                         LOG(INFO) << "[访问辅助点] " << auxiliaryNode->getType() << ":" << "节点ID：" << auxiliaryNode->getID();
 #endif
@@ -562,7 +560,7 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
                                 std::uniform_int_distribution<int> randomIntDistribution(0, nextNodeList.size() - 1);
                                 currentNode = nextNodeList[randomIntDistribution(randomEngine)];
 
-                                nodeVisitedCountList.at(currentNode->getTypeID())++;
+                                nodeVisitedCountList[currentNode->getTypeID()]++;
 #ifdef INFO_LOG_OUTPUT
                                 LOG(INFO) << "[辅助点返回] " << currentNode->getType() << ":" << "节点ID：" << currentNode->getID();
 #endif
@@ -836,11 +834,11 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
     } else {
         auto &typeNodeList = this->typeNodeList.at(nodeType);
         nodeVisitedCountList.reserve(typeNodeList.size());
-        for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
-            if (this->visitedNodeTypeIDCountList[threadNum].at((*iter)->getTypeID()) == 0) {
-                continue;
+
+        for (auto iter = this->visitedNodeTypeIDCountList[threadNum].begin(); iter != this->visitedNodeTypeIDCountList[threadNum].end(); ++iter) {
+            if (iter->first == nodeType) {
+                nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
-            nodeVisitedCountList.emplace_back(std::pair((*iter)->getTypeID(), this->visitedNodeTypeIDCountList[threadNum].at((*iter)->getTypeID())));
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     }
@@ -863,19 +861,17 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeIDListByVisit
     const std::vector<Node*> &typeNodeList = this->getTypeNodeList().at(nodeType);
     nodeVisitedCountList.reserve(typeNodeList.size());
 
-    // 访问次数最大的合并策略
-    int maxCount;
+    // 初始化访问次数的和
+    int sumCount;
     for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
-        maxCount = 0;
+        sumCount = 0;
         for (auto i = 0; i < threadNumList.size(); ++i) {
-            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID()) > maxCount) {
-                maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID());
-            }
+            sumCount += this->visitedNodeTypeIDCountList[threadNumList[i]][(*iter)->getTypeID()];
         }
-        if (maxCount == 0) {
+        if (sumCount == 0) {
             continue;
         }
-        nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), maxCount));
+        nodeVisitedCountList.emplace_back(std::pair((*iter)->getID(), sumCount));
     }
     std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     
@@ -893,11 +889,10 @@ std::vector<std::vector<std::pair<std::string, int>>> Graph::getSortedResultNode
         std::vector<std::pair<std::string, int>> nodeVisitedCountList;
         nodeVisitedCountList.reserve(typeNodeList.size());
 
-        for (auto iter = typeNodeList.begin(); iter != typeNodeList.end(); ++iter) {
-            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID()) == 0) {
-                continue;
+        for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
+            if (iter->first == nodeType) {
+                nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
             }
-            nodeVisitedCountList.emplace_back(std::pair((*iter)->getTypeID(), this->visitedNodeTypeIDCountList[threadNumList[i]].at((*iter)->getTypeID())));
         }
 
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
@@ -1091,13 +1086,8 @@ void Graph::flush() {
             // 生成当前线程的节点访问HashMap
             std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
             countMap.reserve(this->nodeList.size());
-            // 将图中全部未排除节点的访问次数置零
-            for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-                if (iter->second->canVisit()) {
-                    countMap[iter->first] = 0;
-                }
-            }
-            // 将该记录有图中全部节点初始访问次数的HashMap放入列表
+            
+            // 将节点访问次数的HashMap放入列表
             this->visitedNodeTypeIDCountList.emplace_back(countMap);
             // 生成当前线程编号对应的随机数引擎
             this->randomEngineList.emplace_back(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()));
@@ -1110,13 +1100,9 @@ void Graph::flush() {
         }
     }
 #else
-for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
+    for (auto i = 0; i < maxWalkBeginNodeCount; ++i) {
         std::unordered_map<std::string, unsigned int> countMap = std::unordered_map<std::string, unsigned int>();
-        for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-            if (iter->second->canVisit()) {
-                countMap[iter->first] = 0;
-            }
-        }
+        countMap.reserve(this->nodeList.size());
         this->visitedNodeTypeIDCountList.emplace_back(countMap);
     }
 #endif
@@ -1222,16 +1208,12 @@ std::string Graph::getTypeFromTypeID(const std::string tpeID) {
 void Graph::clearResultList(const unsigned int &threadNum) {
 #ifndef ONLY_VISITED_NODE_RESULT
     if (this->resultType == "visited_count") {
-        for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-            this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
-        }
+        this->visitedNodeTypeIDCountList[threadNum].clear();
     } else {
         this->walkingSequence.at(threadNum).clear();
     }
 #else
-    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-        this->visitedNodeTypeIDCountList[threadNum][iter->first] = 0;
-    }
+    this->visitedNodeTypeIDCountList[threadNum].clear();
 #endif
 }
 
@@ -1248,27 +1230,12 @@ void Graph::insertResultList(Node* &node, const unsigned int &threadNum) {
 }
 
 void Graph::mergeResultList(const std::vector<unsigned int> &threadNumList, const unsigned int &targetThreadNum) {
-    // 定义最大访问次数
-    int maxCount;
-    // 遍历图中全部节点
-    for (auto iter = this->nodeList.begin(); iter != this->nodeList.end(); ++iter) {
-#ifdef STORAGE_SAVING_MODE
-        // 判断当前节点是否可访问
-        if (!iter->second->canVisit()) {
-            continue;
+    // 遍历多路图操作对应的线程编号
+    for (auto i = 0; i < this->threadNumList.size(); ++i) {
+        // 遍历当前线程图操作的节点访问次数列表
+        for (auto iter = this->visitedNodeTypeIDCountList[threadNumList[i]].begin(); iter != this->visitedNodeTypeIDCountList[threadNumList[i]].end(); ++iter) {
+            // 将访问次数累加至预留列表
+            this->visitedNodeTypeIDCountList[targetThreadNum][iter->first] += this->visitedNodeTypeIDCountList[threadNumList[i]][iter->first];
         }
-#endif
-
-        // 初始化当前点的最大访问次数为0
-        maxCount = this->visitedNodeTypeIDCountList[targetThreadNum].at(iter->first);
-        // 遍历多路图操作对应的线程编号
-        for (auto i = 0; i < threadNumList.size(); ++i) {
-            // 比较当前点在当前路图操作中的访问次数是否最大
-            if (this->visitedNodeTypeIDCountList[threadNumList[i]].at(iter->first) > maxCount) {
-                maxCount = this->visitedNodeTypeIDCountList[threadNumList[i]].at(iter->first);
-            }
-        }
-        // 记录当前点的最大访问次数
-        this->visitedNodeTypeIDCountList[targetThreadNum].at(iter->first) = maxCount;
     }
 }
