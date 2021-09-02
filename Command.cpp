@@ -527,8 +527,8 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     bool keepVisitedCount = false;
 
     // 初始化知识点召回和题目召回Map
-    beginNodeIDList[0].clear();
-    beginNodeIDList[1].clear();
+    Command::beginNodeIDList[0].clear();
+    Command::beginNodeIDList[1].clear();
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     unsigned int threadNum = 0;
@@ -537,25 +537,25 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     auto quIter = request.questions_assement.begin();
 
     // 遍历全部待召回知识点和题目
-    while (kpIter != request.current_knowledge_points.end() && quIter != request.questions_assement.end()) {
+    while (kpIter != request.current_knowledge_points.end() || quIter != request.questions_assement.end()) {
         if (threadNum < graph.getMaxWalkBeginNodeCount() && kpIter != request.current_knowledge_points.end()) {
-            beginNodeIDList[0][kpIter->first] = kpIter->second;
+            Command::beginNodeIDList[0][kpIter->first] = kpIter->second;
             kpIter++;
             threadNumList.emplace_back(threadNum);
             threadNum++;
         }
 
         if (threadNum < graph.getMaxWalkBeginNodeCount() && quIter != request.questions_assement.end()) {
-            beginNodeIDList[1][quIter->first] = quIter->second;
+            Command::beginNodeIDList[1][quIter->first] = quIter->second;
             quIter++;
             threadNumList.emplace_back(threadNum);
             threadNum++;
         }
 
-        if (threadNum == graph.getMaxWalkBeginNodeCount() || (kpIter == request.current_knowledge_points.end() && quIter != request.questions_assement.end())) {
+        if (threadNum == graph.getMaxWalkBeginNodeCount() || (kpIter == request.current_knowledge_points.end() && quIter == request.questions_assement.end())) {
             if (Command::questionRecallIsSplitStepCount) {
-                Command::questionRecallTotalStepCountList[0] = threadNum / beginNodeCount * Command::questionRecallTotalStepCount;
-                Command::questionRecallTotalStepCountList[1] = threadNum / beginNodeCount * Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[0] = float(threadNum) / beginNodeCount * Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[1] = float(threadNum) / beginNodeCount * Command::questionRecallTotalStepCount;
             } else {
                 Command::questionRecallTotalStepCountList[0] = Command::questionRecallTotalStepCount;
                 Command::questionRecallTotalStepCountList[1] = Command::questionRecallTotalStepCount;
@@ -564,7 +564,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             // 多重游走
             // Todo
             graph.multiWalk(Command::questionRecallBeginNodeTypeList,
-                            beginNodeIDList,
+                            Command::beginNodeIDList,
                             Command::questionRecallStepDefineList,
                             Command::questionRecallAuxiliaryEdgeList,
                             Command::questionRecallWalkLengthRatioList,
@@ -577,6 +577,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             keepVisitedCount = true;
             threadNum = 0;
             threadNumList.clear();
+            Command::beginNodeIDList = std::vector<std::map<std::string, double>>(2);
         }
     }
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

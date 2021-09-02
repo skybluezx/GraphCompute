@@ -3,6 +3,7 @@
 // 题目召回主逻辑
 //
 #include <iostream>
+#include <filesystem>
 #include <boost/json.hpp>
 
 #include "Util.h"
@@ -61,7 +62,7 @@ int main(int argc, char* argv[]) {
 
     std::string questionRecallConfigFile;
     Util::getConfig("QuestionRecall", "config_file_path", questionRecallConfigFile);
-
+    
     LOG(INFO) << "配置文件路径：" << Util::configFilePath;
     LOG(INFO) << "日志输出路径：" << logDirectory;
     LOG(INFO) << "日志输出等级：" << logLevel;
@@ -84,10 +85,10 @@ int main(int argc, char* argv[]) {
         LOG(INFO) << iter->first << ":" << iter->second;
     }
     google::FlushLogFiles(google::INFO);
-
+    
     // 读取题目召回配置文件
     Command::questionRecallInitialize(questionRecallConfigFile);
-
+    
     /**
      * 请求部分
      */
@@ -161,7 +162,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 }
-
+                
                 //    // 设置前序课堂全部作答题目的ID及作答结果
                 //    recallIn.preceding_questions_assement["01b96113ecb94b7c8bef62a92f2d47c7"] = 1;
                 //    recallIn.preceding_questions_assement["01c0cefce12f4bf0b69788826662e329"] = 2;
