@@ -17,6 +17,7 @@
 // 配置文件路径
 DEFINE_string(config_file_path, "", "配置文件路径 ");
 DEFINE_validator(config_file_path, &Util::validatePath);
+// 图任务文件路径
 DEFINE_string(task_file_path, "", "任务文件路径 ");
 DEFINE_validator(task_file_path, &Util::validatePath);
 

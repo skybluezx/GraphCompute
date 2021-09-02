@@ -218,7 +218,7 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
         // 创建相关参数列表
         std::vector<std::string> beginNodeTypeList;
-        std::vector<std::map<std::string, double>> beginNodeIDList ;
+        std::vector<std::map<std::string, double>> beginNodeIDList;
         std::vector<std::vector<std::string>> stepDefineList;
         std::vector<std::map<std::string, std::string>> auxiliaryEdgeList;
         std::vector<float> walkLengthRatioList;
@@ -521,6 +521,11 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     /**
      * 多路召回
      */
+    // 计算总开始点个数
+    unsigned int beginNodeCount = request.current_knowledge_points.size() + request.questions_assement.size();
+    // 初始化是否保留访问次数为false（清除上一次请求的访问次数）
+    bool keepVisitedCount = false;
+
     // 初始化知识点召回和题目召回Map
     beginNodeIDList[0].clear();
     beginNodeIDList[1].clear();
@@ -549,8 +554,8 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
 
         if (threadNum == graph.getMaxWalkBeginNodeCount() || (kpIter == request.current_knowledge_points.end() && quIter != request.questions_assement.end())) {
             if (Command::questionRecallIsSplitStepCount) {
-                Command::questionRecallTotalStepCountList[0] = threadNum / graph.getMaxWalkBeginNodeCount() * Command::questionRecallTotalStepCount;
-                Command::questionRecallTotalStepCountList[1] = threadNum / graph.getMaxWalkBeginNodeCount() * Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[0] = threadNum / beginNodeCount * Command::questionRecallTotalStepCount;
+                Command::questionRecallTotalStepCountList[1] = threadNum / beginNodeCount * Command::questionRecallTotalStepCount;
             } else {
                 Command::questionRecallTotalStepCountList[0] = Command::questionRecallTotalStepCount;
                 Command::questionRecallTotalStepCountList[1] = Command::questionRecallTotalStepCount;
@@ -566,9 +571,10 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
                             Command::questionRecallRestartRatioList,
                             Command::questionRecallTotalStepCountList,
                             Command::questionRecallIsSplitStepCountList,
-                            false);
+                            keepVisitedCount);
             graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
+            keepVisitedCount = true;
             threadNum = 0;
             threadNumList.clear();
         }
@@ -666,11 +672,22 @@ bool Command::questionRecallInitialize(const std::string &configFilePath) {
     // 读取是否切分总游走步数
     Command::questionRecallIsSplitStepCount = jsonObj.as_object().at("isSplitStepCount").as_bool();
 
+    // 初始化开始点列表
+    // 初始化知识点开始点列表
     Command::beginNodeIDList.emplace_back(std::map<std::string, double>());
+    // 初始化题目开始点列表
     Command::beginNodeIDList.emplace_back(std::map<std::string, double>());
+
+    // 初始化总游走步数列表
+    // 初始胡知识点开始点列表
     Command::questionRecallTotalStepCountList.emplace_back(0);
+    // 初始化题目开始点列表
     Command::questionRecallTotalStepCountList.emplace_back(0);
+
+    // 初始化是否切分部分列表
+    // 初始胡知识点开始点列表
     Command::questionRecallIsSplitStepCountList.emplace_back(false);
+    // 初始化题目开始点列表
     Command::questionRecallIsSplitStepCountList.emplace_back(false);
 
     return true;
