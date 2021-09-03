@@ -606,7 +606,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     filterQuestionList.insert(request.questions_assement.begin(), request.questions_assement.end());
     // 加入前序课堂的题目
     filterQuestionList.insert(request.preceding_questions_assement.begin(), request.preceding_questions_assement.end());
-
+    
     // Todo
     // 过滤本节课还是前序所有课
     int32_t courseMaxHard = 0;
@@ -627,7 +627,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     // 遍历召回题目列表
     for (auto i = 0; i < recallList.size(); ++i) {
         // 判断当前题目是否在过略列表里
-        if (!filterQuestionList.contains(recallList[i].first)) {
+        if (!filterQuestionList.contains(graph.getNodeList().at(recallList[i].first)->getID())) {
             // 选择题过滤
             if (Command::questionRecallMultipleChoiceQuestionFilterMap[recallList[i].first] != 1) {
                 continue;
