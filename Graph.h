@@ -408,7 +408,7 @@ private:
      * @param b
      * @return
      */
-    static bool cmp(std::pair<std::string, int> a, std::pair<std::string, int> b);
+    static bool cmp(const std::pair<std::string, int> &a, const std::pair<std::string, int> &b);
 
     /**
      * 从TypeID中获取Type

@@ -650,7 +650,7 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
     // 判断开始点是否是孤立点
     if (beginNode->getLinkedNodeList().empty()) {
         // 若是孤立点则记一次访问然后结束游走
-        nodeVisitedCountList[beginNode->getTypeID()] = 1;
+        if (beginNode->getType() == "Question") nodeVisitedCountList[beginNode->getTypeID()] = 1;
         return;
     }
 
@@ -664,7 +664,7 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
         LOG(INFO) << "[向前一步] 当前游走步数/总步数：" << currentStepCount << "/" << totalStepCount;
 #endif
         // 访问当前步的开始点
-        nodeVisitedCountList[currentNode->getTypeID()]++;
+        if (beginNode->getType() == "Question") nodeVisitedCountList[currentNode->getTypeID()]++;
         // 步数加1
         currentStepCount++;
 #ifdef INFO_LOG_OUTPUT
@@ -886,11 +886,13 @@ std::vector<std::pair<std::string, int>> Graph::getSortedResultNodeTypeIDListByV
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     } else {
         nodeVisitedCountList.reserve(this->typeNodeList.at(nodeType).size());
-
         for (auto iter = this->visitedNodeTypeIDCountList[threadNum].begin(); iter != this->visitedNodeTypeIDCountList[threadNum].end(); ++iter) {
-            if (this->nodeList.at(iter->first)->getType() == nodeType) {
+            // Todo
+            // 这里为Finger项目进行了优化
+            // 需要单独创建当前方法的定制版本！！！
+            //if (this->nodeList.at(iter->first)->getType() == nodeType) {
                 nodeVisitedCountList.emplace_back(std::pair(iter->first, iter->second));
-            }
+            //}
         }
         std::sort(nodeVisitedCountList.begin(), nodeVisitedCountList.end(), cmp);
     }
@@ -1248,7 +1250,7 @@ void Graph::traverse(std::vector<std::string> &traverseSequenceList, Node *const
     //}
 }
 
-bool Graph::cmp(std::pair<std::string, int> a, std::pair<std::string, int> b) {
+bool Graph::cmp(const std::pair<std::string, int> &a, const std::pair<std::string, int> &b) {
     return a.second > b.second;
 }
 
