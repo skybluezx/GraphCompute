@@ -190,7 +190,8 @@ public:
                        const std::string &beginNodeID,
                        const float &restartRatio,
                        const unsigned int &totalStepCount,
-                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList);
+                       std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
+                       std::mt19937 &randomEngine);
 
     /**
      * 多重游走
@@ -212,6 +213,12 @@ public:
                    const std::vector<float> &restartRatioList,
                    const std::vector<unsigned int> &totalStepCountList,
                    const std::vector<bool> &isSplitStepCountList,
+                   const bool &keepVisitedCount = false);
+
+    void multiWalk1(const std::vector<std::string> &beginNodeTypeList,
+                   const std::vector<std::map<std::string, double>> &beginNodeIDList,
+                   const std::vector<float> &restartRatioList,
+                   const std::vector<unsigned int> &totalStepCountList,
                    const bool &keepVisitedCount = false);
 
     /**

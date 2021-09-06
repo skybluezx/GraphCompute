@@ -124,7 +124,7 @@ def get_question_mastery_dict(question_mastery_file_path):
             question_mastery_dict[course] = list()
             data_list = obj[course]['data']
             for data in data_list:
-                question_mastery_dict[course].append({'id': data['que_id'], 'weight': data['que_mastery_level']})
+                question_mastery_dict[course].append({'id': data['que_id'], 'weight': float(data['que_mastery_level'])})
     return question_mastery_dict
 
 
@@ -220,16 +220,16 @@ if __name__ == "__main__":
                       '1689361',
                       '1630150',
                       '10490049']
-    get_recall_task_json_from_course(task_json_save_dir_path,
-                                     course_id_list,
-                                     course_request_node_list,
-                                     is_merge,
-                                     stepDefine,
-                                     auxiliaryEdge,
-                                     walkLengthRatio,
-                                     restartRatio,
-                                     totalStepCount,
-                                     isSplitStepCount,
-                                     visitedCountTopN)
-
+    # get_recall_task_json_from_course(task_json_save_dir_path,
+    #                                  course_id_list,
+    #                                  course_request_node_list,
+    #                                  is_merge,
+    #                                  stepDefine,
+    #                                  auxiliaryEdge,
+    #                                  walkLengthRatio,
+    #                                  restartRatio,
+    #                                  totalStepCount,
+    #                                  isSplitStepCount,
+    #                                  visitedCountTopN)
+    
     # recall_from_file(recall_bin_path, task_json_save_dir_path, course_kp_list)

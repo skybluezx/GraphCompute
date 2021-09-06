@@ -517,46 +517,44 @@ void Command::execute(Graph &graph, const std::string &command, const std::strin
 
 arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     arch::Out result;
-
     /**
      * 多路召回
      */
-    // 计算总开始点个数
+    // 计算总开始点个数(用于将总步数分配至多轮游走)
     unsigned int beginNodeCount = request.current_knowledge_points.size() + request.questions_assement.size();
-    // 初始化是否保留访问次数为false（清除上一次请求的访问次数）
+    // 初始化是否保留访问次数为false（用于清除上一次请求的访问次数）
     bool keepVisitedCount = false;
 
     // 每个知识点召回的题目个数列表清空
     Command::questionRecallKnowledgePointQuestionCountList.clear();
-
     // 初始化知识点召回和题目召回Map
     Command::beginNodeIDList[0].clear();
     Command::beginNodeIDList[1].clear();
 
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     unsigned int threadNum = 0;
     std::vector<unsigned int> threadNumList;
     auto kpIter = request.current_knowledge_points.begin();
     auto quIter = request.questions_assement.begin();
 
     // 遍历全部待召回知识点和题目
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    // 遍历全部待召回知识点和题目
     while (kpIter != request.current_knowledge_points.end() || quIter != request.questions_assement.end()) {
+        // 当开始点个数尚未达到最大线程数且存在尚未召回知识点时
         if (threadNum < graph.getMaxWalkBeginNodeCount() && kpIter != request.current_knowledge_points.end()) {
             Command::beginNodeIDList[0][kpIter->first] = kpIter->second;
             kpIter++;
             threadNumList.emplace_back(threadNum);
             threadNum++;
-
-            Command::questionRecallKnowledgePointQuestionCountList[kpIter->first] = 0;
         }
-
+        // 当开始点个数尚未达到最大线程数且存在尚未召回题目时
         if (threadNum < graph.getMaxWalkBeginNodeCount() && quIter != request.questions_assement.end()) {
             Command::beginNodeIDList[1][quIter->first] = quIter->second;
             quIter++;
             threadNumList.emplace_back(threadNum);
             threadNum++;
         }
-
+        // 当凑够一轮游走所需的线程数或者是最后一轮游走时
         if (threadNum == graph.getMaxWalkBeginNodeCount() || (kpIter == request.current_knowledge_points.end() && quIter == request.questions_assement.end())) {
             if (Command::questionRecallIsSplitStepCount) {
                 Command::questionRecallTotalStepCountList[0] = float(threadNum) / beginNodeCount * Command::questionRecallTotalStepCount;
@@ -568,14 +566,10 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
 
             // 多重游走
             // Todo
-            graph.multiWalk(Command::questionRecallBeginNodeTypeList,
+            graph.multiWalk1(Command::questionRecallBeginNodeTypeList,
                             Command::beginNodeIDList,
-                            Command::questionRecallStepDefineList,
-                            Command::questionRecallAuxiliaryEdgeList,
-                            Command::questionRecallWalkLengthRatioList,
                             Command::questionRecallRestartRatioList,
                             Command::questionRecallTotalStepCountList,
-                            Command::questionRecallIsSplitStepCountList,
                             keepVisitedCount);
             graph.mergeResultList(threadNumList, graph.getMaxWalkBeginNodeCount());
 
@@ -587,7 +581,6 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     }
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     std::chrono::duration<double> programSpan = duration_cast<std::chrono::duration<double>>(t2 - t1);
-
     LOG(INFO) << "[INFO] 游走时长：" << programSpan.count() << "秒" << std::endl;
 
     /**
@@ -597,11 +590,10 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     std::vector<std::pair<std::string, int>> recallList = graph.getSortedResultNodeTypeIDListByVisitedCount("Question", graph.getMaxWalkBeginNodeCount());
 
     /**
-     * 后过滤策略
+     * 后过滤策略初始化
      */
     // 过滤题目ID列表
     std::map<std::string, int32_t> filterQuestionList;
-
     // 加入本节课的题目
     filterQuestionList.insert(request.questions_assement.begin(), request.questions_assement.end());
     // 加入前序课堂的题目
@@ -625,33 +617,45 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     // 若小于则设置期待召回题目个数为总召回题目个数
     if (recallList.size() < request.expected) recallCount = recallList.size();
     // 遍历召回题目列表
-    for (auto i = 0; i < recallList.size(); ++i) {
+    for (auto iter = recallList.begin(); iter != recallList.end(); ++iter) {
         // 判断当前题目是否在过略列表里
-        if (!filterQuestionList.contains(graph.getNodeList().at(recallList[i].first)->getID())) {
+        if (!filterQuestionList.contains(graph.getNodeList().at(iter->first)->getID())) {
+            /**
+             * 题目属性过滤
+             */
+
             // 选择题过滤
-            if (Command::questionRecallMultipleChoiceQuestionFilterMap[recallList[i].first] != 1) {
+            if (Command::questionRecallMultipleChoiceQuestionFilterMap[iter->first] != 1) {
                 continue;
             }
 
             // 是否自动判卷过滤
-            if (Command::questionRecallIsDecidableFilterMap[recallList[i].first] == 0) {
+            if (Command::questionRecallIsDecidableFilterMap[iter->first] == 0) {
                 continue;
             }
 
             // 难度过滤
-            if (courseMaxHard > 0 && Command::questionRecallQuestionHardFilterMap[recallList[i].first] > courseMaxHard) {
+            if (courseMaxHard > 0 && Command::questionRecallQuestionHardFilterMap[iter->first] > courseMaxHard) {
                 continue;
             }
 
+            /**
+             * 题目-知识点维度过滤
+             */
+
+            // 判断当前题目是否有对应知识点
+            if (graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint") == nullptr) {
+                continue;
+            }
+            // 判断当前题目是否在本堂课的知识点范围内
+            if (!request.current_knowledge_points.contains(graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID())) {
+                continue;
+            }
             // 判断当前题目对应的知识点是否已召回足够多题目
-            if (graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint") == nullptr) {
-                continue;
-            }
-
-            questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
-            if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(recallList[i].first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
-                // 不在则加入返回列表
-                result.payload.emplace_back(recallList[i].first);
+            questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
+            if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
+                // 未超过占比则加入返回列表
+                result.payload.emplace_back(iter->first);
             }
         }
         // 判断返回题目数是否已满足期待召回个数

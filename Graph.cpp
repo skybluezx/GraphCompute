@@ -465,7 +465,9 @@ void Graph::walkOnThread(const std::string &beginNodeType, const std::string &be
     std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
 
     // 清空访问次数字典
-    nodeVisitedCountList.clear();
+    if (!keepVisitedCount) {
+        nodeVisitedCountList.clear();
+    }
 
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -629,18 +631,13 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
                           const std::string &beginNodeID,
                           const float &restartRatio,
                           const unsigned int &totalStepCount,
-                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList) {
-    // 由于随机数生成涉及的数据结构不安全，所以在线程体内生成线程独立的相关数据结构
-    // 当前线程的随机引擎
-    std::default_random_engine randomEngine;
-    randomEngine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+                          std::unordered_map<std::string, unsigned int> &nodeVisitedCountList,
+                          std::mt19937 &randomEngine) {
     // 初始化0到1之间实数的随机数分布（用于重启策略）
     std::uniform_real_distribution<double> randomDoubleDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
     
     // 清空访问次数字典
-    for (auto iter = nodeVisitedCountList.begin(); iter != nodeVisitedCountList.end(); ++iter) {
-        iter->second = 0;
-    }
+    nodeVisitedCountList.clear();
     
     // 检查开始点是否存在
     if (!this->nodeList.contains(beginNodeType + ":" + beginNodeID)) {
@@ -666,10 +663,10 @@ void Graph::walkOnThread1(const std::string &beginNodeType,
 #ifdef INFO_LOG_OUTPUT
         LOG(INFO) << "[向前一步] 当前游走步数/总步数：" << currentStepCount << "/" << totalStepCount;
 #endif
+        // 访问当前步的开始点
+        nodeVisitedCountList[currentNode->getTypeID()]++;
         // 步数加1
         currentStepCount++;
-        // 访问当前步的开始点
-        nodeVisitedCountList.at(currentNode->getTypeID())++;
 #ifdef INFO_LOG_OUTPUT
         LOG(INFO) << "[访问当前点] " << currentNode->getTypeID();
 #endif
@@ -781,14 +778,65 @@ void Graph::multiWalk(const std::vector<std::string> &beginNodeTypeList,
                                 std::ref(this->visitedNodeTypeIDCountList[threadNum]),
                                 std::ref(this->randomEngineList[threadNum]),
                                 std::cref(keepVisitedCount))
+                                );
+            threadNum++;
+        }
 
-//                    std::thread(&Graph::walkOnThread1, this,
-//                                std::cref(beginNodeTypeList[i]),
-//                                std::cref(iter->first),
-//                                std::cref(restartRatioList[i]),
-//                                std::cref(stepCountList[iter->first]),
-//                                std::ref(this->visitedNodeTypeIDCountList[threadNum]))
+        // 判断当前线程数是否已达到最大线程数
+        if (threadNum == this->maxWalkBeginNodeCount) {
+            // 达到则退出
+            break;
+        }
 
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[本组游走结束]";
+#endif
+    }
+
+    for (auto i = 0; i < threadList.size(); ++i) {
+        if (threadList[i].joinable()) {
+            threadList[i].join();
+        }
+    }
+}
+
+void Graph::multiWalk1(const std::vector<std::string> &beginNodeTypeList,
+                      const std::vector<std::map<std::string, double>> &beginNodeIDList,
+                      const std::vector<float> &restartRatioList,
+                      const std::vector<unsigned int> &totalStepCountList,
+                      const bool &keepVisitedCount) {
+    if (!keepVisitedCount) {
+        // 清空用于合并多个线程图操作访问次数的预留map
+        this->visitedNodeTypeIDCountList[this->maxWalkBeginNodeCount].clear();
+    }
+
+    // 初始化线程起始编号为0
+    unsigned int threadNum = 0;
+    // 线程池
+    std::vector<std::thread> threadList;
+
+    // 遍历游走组
+    for (auto i = 0; i < beginNodeTypeList.size(); ++i) {
+#ifdef INFO_LOG_OUTPUT
+        LOG(INFO) << "[游走组" << i << "] ";
+        LOG(INFO) << "[计算组内节点游走总步数]";
+#endif
+        // 遍历全部开始点启动线程
+        for (auto iter = beginNodeIDList[i].begin(); iter != beginNodeIDList[i].end(); ++iter) {
+            // 判断当前线程数是否已达到最大线程数
+            if (threadNum == this->maxWalkBeginNodeCount) {
+                // 达到则退出
+                break;
+            }
+
+            threadList.emplace_back(
+                    std::thread(&Graph::walkOnThread1, this,
+                                std::cref(beginNodeTypeList[i]),
+                                std::cref(iter->first),
+                                std::cref(restartRatioList[i]),
+                                std::cref(totalStepCountList[i]),
+                                std::ref(this->visitedNodeTypeIDCountList[threadNum]),
+                                std::ref(this->randomEngineList[threadNum]))
                                 );
             threadNum++;
         }
