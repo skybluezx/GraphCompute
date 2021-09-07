@@ -655,7 +655,7 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID()]++;
             if (questionRecallKnowledgePointQuestionCountList[graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID()] < request.expected / request.current_knowledge_points.size()) {
                 // 未超过占比则加入返回列表
-                result.payload.emplace_back(iter->first);
+                result.payload.emplace_back(graph.getNodeList().at(iter->first)->getID());
             }
         }
         // 判断返回题目数是否已满足期待召回个数
