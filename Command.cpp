@@ -598,13 +598,28 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     filterQuestionList.insert(request.questions_assement.begin(), request.questions_assement.end());
     // 加入前序课堂的题目
     filterQuestionList.insert(request.preceding_questions_assement.begin(), request.preceding_questions_assement.end());
-    
+
+    // 本节课中题目对应的知识点
+    std::unordered_map<std::string, bool> questionsAssementKnowledgePointList;
+    // 初始化本节课中题目的最大难度
     // Todo
     // 过滤本节课还是前序所有课
     int32_t courseMaxHard = 0;
     for(auto iter = request.questions_assement.begin(); iter != request.questions_assement.begin(); ++iter){
         if (iter->second > courseMaxHard){
             courseMaxHard = iter->second;
+        }
+        // 判断当前题目是否在题库中
+        if (graph.getNodeList().contains(iter->first)) {
+            // 判断当前题目是否拥有知识点
+            if (graph.getNodeList().at(iter->first)->getLinkedNodeMapList().contains("KnowledgePoint")) {
+                // 获取当前题目的知识点列表
+                auto &knowledgePointList = graph.getNodeList().at(iter->first)->getLinkedNodeMapList().at("KnowledgePoint");
+                // 将当前题目的知识点加入列表
+                for (auto kpIter = knowledgePointList.begin(); kpIter != knowledgePointList.end(); ++kpIter) {
+                    questionsAssementKnowledgePointList[(*kpIter)->getID()] = true;
+                }
+            }
         }
     }
     
@@ -647,8 +662,9 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
             if (graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint") == nullptr) {
                 continue;
             }
-            // 判断当前题目是否在本堂课的知识点范围内
-            if (!request.current_knowledge_points.contains(graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID())) {
+            // [取消]判断当前题目是否在本堂课的知识点范围内
+            // [启用]判断当前题目是否在本节课上题目对应的知识点范围内
+            if (!questionsAssementKnowledgePointList.contains(graph.getNodeList().at(iter->first)->getFirstLinkedNode("KnowledgePoint")->getID())) {
                 continue;
             }
             // 判断当前题目对应的知识点是否已召回足够多题目
