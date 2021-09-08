@@ -605,16 +605,16 @@ arch::Out Command::questionRecall(const arch::In &request, Graph &graph) {
     // Todo
     // 过滤本节课还是前序所有课
     int32_t courseMaxHard = 0;
-    for(auto iter = request.questions_assement.begin(); iter != request.questions_assement.begin(); ++iter){
+    for(auto iter = request.questions_assement.begin(); iter != request.questions_assement.end(); ++iter){
         if (iter->second > courseMaxHard){
             courseMaxHard = iter->second;
         }
         // 判断当前题目是否在题库中
-        if (graph.getNodeList().contains(iter->first)) {
+        if (graph.getNodeList().contains("Question:" + iter->first)) {
             // 判断当前题目是否拥有知识点
-            if (graph.getNodeList().at(iter->first)->getLinkedNodeMapList().contains("KnowledgePoint")) {
+            if (graph.getNodeList().at("Question:" + iter->first)->getLinkedNodeMapList().contains("KnowledgePoint")) {
                 // 获取当前题目的知识点列表
-                auto &knowledgePointList = graph.getNodeList().at(iter->first)->getLinkedNodeMapList().at("KnowledgePoint");
+                auto &knowledgePointList = graph.getNodeList().at("Question:" + iter->first)->getLinkedNodeMapList().at("KnowledgePoint");
                 // 将当前题目的知识点加入列表
                 for (auto kpIter = knowledgePointList.begin(); kpIter != knowledgePointList.end(); ++kpIter) {
                     questionsAssementKnowledgePointList[(*kpIter)->getID()] = true;
